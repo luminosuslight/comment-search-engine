@@ -1,0 +1,36 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <value>
+          <list size="14">
+            <item index="0" class="java.lang.String" itemvalue="nuimo" />
+            <item index="1" class="java.lang.String" itemvalue="raven" />
+            <item index="2" class="java.lang.String" itemvalue="setuptools-git" />
+            <item index="3" class="java.lang.String" itemvalue="netdisco" />
+            <item index="4" class="java.lang.String" itemvalue="lightify" />
+            <item index="5" class="java.lang.String" itemvalue="cryptoyaml" />
+            <item index="6" class="java.lang.String" itemvalue="setuptools-git-version" />
+            <item index="7" class="java.lang.String" itemvalue="websocket-client" />
+            <item index="8" class="java.lang.String" itemvalue="cornice" />
+            <item index="9" class="java.lang.String" itemvalue="pyramid" />
+            <item index="10" class="java.lang.String" itemvalue="colander" />
+            <item index="11" class="java.lang.String" itemvalue="pyramid_tm" />
+            <item index="12" class="java.lang.String" itemvalue="phue" />
+            <item index="13" class="java.lang.String" itemvalue="soco" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyPep8NamingInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <option name="ignoredBaseClasses">
+        <list>
+          <option value="unittest.TestCase" />
+          <option value="unittest.case.TestCase" />
+          <option value="dbus.service.Object" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
