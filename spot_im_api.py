@@ -34,14 +34,21 @@ import pprint
 
 
 def get_comments_of_news_as_json(news_id):
-    url = "https://spoxy-shard5.spot.im/v2/spot/sp_6phY2k0C/post/%s/" % news_id
-    p = re.compile(r'window.__APP_STATE__= JSON.parse\("(.*)"\)')
-    r = p.search(requests.get(url).text)
-    j = r.group(1)
-    j = j.replace('\\"', '"')
-    obj = json.loads(j)
+    # rt.com uses Spot.IM for the comment section
+    # this message reads a JSON string directly from the corresponding Spot.IM page
+
+    comment_url = "https://spoxy-shard5.spot.im/v2/spot/sp_6phY2k0C/post/%s/" % news_id
+    html = requests.get(comment_url).text
+
+    regex_for_json = re.compile(r'window.__APP_STATE__= JSON.parse\("(.*)"\)')
+    regex_result = regex_for_json.search(html)
+    json_raw = regex_result.group(1)
+    json_raw = json_raw.replace('\\"', '"')
+    comments_in_spot_im_format = json.loads(json_raw)
+
+    # print for debugging
     pp = pprint.PrettyPrinter(indent=4)
-    pp.pprint(obj["conversations"][0]["conversation"]["comments"])
+    pp.pprint(comments_in_spot_im_format["conversations"][0]["conversation"]["comments"])
 
 
 if __name__ == '__main__':
