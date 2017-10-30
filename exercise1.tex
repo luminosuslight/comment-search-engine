@@ -1,5 +1,7 @@
 \documentclass{scrartcl}
+
 \usepackage[utf8]{inputenc}
+\usepackage{fancyhdr}
 
 \renewcommand{\thesubsection}{\thesection.\alph{subsection}}
 
@@ -9,6 +11,10 @@
 \title{Exercise 1}
 \subtitle{Information Retrieval and Web Search}
 \author{Ahmed Rekik and Tim Henning}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Tim Henning - XXXXXX - Ahmed Rekik - 790063}
+\cfoot{ \thepage}
 
 \begin{document}
 
@@ -20,7 +26,7 @@
 \subsection{Explain the terms Web search and information retrieval. How do they differ from each
 	other?}
 
-As an abstract definition, the term "Information retrieval" refers to the activity of searching and finding relevant information from an unstructured (collection of) document(s) in terms of a needed query. The aimed information are usually unstructured and may be quotes from a full text, papers, a book from a library, numeric data, or even images.
+As an abstract definition, the term  "Information retrieval" refers to the activity of searching and finding relevant information from an unstructured (collection of) document(s) in terms of a needed query. The aimed information are usually unstructured and may be quotes from a full text, papers, a book from a library, numeric data, or even images.
 
 In the other hand, Web search term is a type and a practical application of information retrieval based on indexed data from the world wide web. Using engines specialized in web search one can search for information using queries that express this need. Through search and ranking algorithms the web search engine returns a list of matched information in terms of the existing words in the query.
 
@@ -51,7 +57,9 @@ While the \inlinecode{HEAD} request is much faster because it returns less data,
 
 Typical obstacles for crawlers are for example the downloading speed, politeness rules, information noise like advertisements or navigation elements and the large number of website duplicates.
 
-To access the information on a webpage the crawler has to perform a DNS lookup to get the IP address and must download the corresponding HTML and sometimes JavaScript files. A solution could be the parallel execution of the requests, but to follow the so called politeness rules the crawler has to wait a few seconds before performing another request on the same server. This makes a queue of requests necessary.
+To access the information on a webpage the crawler has to perform a DNS lookup to get the IP address and must download the corresponding HTML and sometimes JavaScript files. A solution could be the parallel execution of the requests, but to follow the so called politeness rules the crawler has to wait a few seconds before performing another request on the same server. This makes a queue of requests necessary. 
+
+Storage of converted document text may be also seen as a time consuming operation and slow the crawling task down.
 
 Another difficult task is to separate the relevant content in an HTML file from noise like ads and navigation elements. Beside that the crawler also has to keep track of the wepages it already knows (i.e. by a fingerprint algorithm) to not index duplicates of it again.
 
