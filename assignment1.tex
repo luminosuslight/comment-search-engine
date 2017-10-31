@@ -2,18 +2,27 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage{fancyhdr}
+\usepackage[colorlinks, linkcolor = black, citecolor = black, filecolor = black, urlcolor = blue]{hyperref}
+
+\usepackage{listings}
+\lstdefinestyle{mystyle}{
+	breakatwhitespace=false,         
+	breaklines=true
+}
+\lstset{style=mystyle}
+
 
 \renewcommand{\thesubsection}{\thesection.\alph{subsection}}
 
 \newcommand*{\inlinecode}[1]{\texttt{#1}}
 
 
-\title{Exercise 1}
+\title{Assignment 1}
 \subtitle{Information Retrieval and Web Search}
-\author{Ahmed Rekik and Tim Henning}
+\author{Ahmed Rekik - 790063 \& Tim Henning - 789242}
 \pagestyle{fancy}
 \fancyhf{}
-\rhead{Tim Henning - 789242 - Ahmed Rekik - 790063}
+\rhead{Ahmed Rekik - 790063 \& Tim Henning - 789242}
 \cfoot{ \thepage}
 
 \begin{document}
@@ -70,6 +79,24 @@ In the end, the robots.txt file, that was intended to help the crawler, could al
 \subsection{Print the csv file for one newspaper article of the 16th October, 2017. Choose an article with
 	at least 5 comments. }
 
-See the attached file.
+CSV file generated for the following article:
+\href{http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/}{Trump: Total termination of Iran nuclear deal is a ‘very real possibility’} (RT US News, October 16th, 2017)
+
+\begin{lstlisting}
+id,url,author,text,timestamp,parent_id,up_votes,down_votes
+sp_6phY2k0C_406881_c_3AfH17,http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/,GoldStrawberry,The world must stand up to US capitalist terror and barbarism.,1508170712,,132,2
+sp_6phY2k0C_406881_c_3AfH17_r_IkuQVq,http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/,PurpleTrumpet,But who has the bravery to stand up to the bully?,1508171553,sp_6phY2k0C_406881_c_3AfH17,30,2
+sp_6phY2k0C_406881_c_3AfH17_r_Bc2l1t,http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/,whatislove,Erdogan.,1508172109,sp_6phY2k0C_406881_c_3AfH17,22,6
+sp_6phY2k0C_406881_c_3AfH17_r_CKFDcy,http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/,MrUniverse81,Our little bubbly bro Mr.K,1508178527,sp_6phY2k0C_406881_c_3AfH17,21,0
+sp_6phY2k0C_406881_c_UHkOKx,http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/,BlackwateropGla,"Nothing will  shock me nor surprise me from the part of USSA!!!They deserve  the trophy for "" The most hypocrite and the biggest criminal entity-nation in the history of man kind!!""",1508171292,,71,1
+sp_6phY2k0C_406881_c_UHkOKx_r_VRIAyq,http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/,OliveUmbrella,Our puppets had better cut the strings.,1508171956,sp_6phY2k0C_406881_c_UHkOKx,14,1
+sp_6phY2k0C_406881_c_UHkOKx_r_pRsptl,http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/,BlackwateropGla,"US and  the elite are extremely desperate,the time is running out,their financial system is falling apart at a rapid space and the end of the petrol-dollar as world currency is near his end.They need a major war or a hand made natural catastrophe to blame the financial crisis on!! If they pick a war with Iran or North Korea I need to affirm with a lot of confidence that USA will not be the same as we new it.",1508172479,sp_6phY2k0C_406881_c_UHkOKx,32,2
+sp_6phY2k0C_406881_c_UHkOKx_r_zWBvWh,http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/,SirLeo,"Yes, they are desperate. I also think they don't know whom to attack. Worse, they are incapable of grasping what the rest of the world is thinking.",1508172571,sp_6phY2k0C_406881_c_UHkOKx,16,0
+sp_6phY2k0C_406881_c_ep58BF,http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/,PurpleSeahorse,this is nuclear fuel being given to us...politcal fuel to power political reactors for a thouand years...the more the us/israel talks the deeper they sink,1508170375,,66,1
+sp_6phY2k0C_406881_c_ep58BF_r_9DHMyO,http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/,OliveSushi,fusion reactors that will be a strategically unbeatable defense against these spawn of darkness,1508170719,sp_6phY2k0C_406881_c_ep58BF,20,0
+sp_6phY2k0C_406881_c_ep58BF_r_ydexxA,http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/,BlueBike,three quarters of a TRILLION per year who cares about exports use correct statistics,1508179895,sp_6phY2k0C_406881_c_ep58BF,2,0
+sp_6phY2k0C_406881_c_ep58BF_r_z8IT9g,http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/,GoldTree,Thats very true their military business is the only thing that keeps their economy going and this blowhard is doing his best as a used car salesman to drum up new business. The reality is that if anything other than these proxy wars happen as in a big regional war Israel will vanish during the process and they know it.,1508170837,sp_6phY2k0C_406881_c_ep58BF,63,0
+
+\end{lstlisting}
 
 \end{document}
