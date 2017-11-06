@@ -2,6 +2,7 @@ import requests
 import re
 import json
 import pprint
+import csv
 
 
 def get_list_of_news_ids(year):
@@ -55,8 +56,8 @@ def get_list_of_comments(comments_in_spot_im_format, url):
         comment["text"] = root_comment['entities'][0]['text']
         comment["timestamp"] = root_comment['postedAt']
         comment["parent_id"] = ""
-        comment["down_votes"] = root_comment['downVotesCount']
         comment["up_votes"] = root_comment['upVotesCount']
+        comment["down_votes"] = root_comment['downVotesCount']
         comments.append(comment)
 
         for reply in root_comment['replies']:
@@ -70,8 +71,8 @@ def get_list_of_comments(comments_in_spot_im_format, url):
             comment["text"] = reply['entities'][0]['text']
             comment["timestamp"] = reply['postedAt']
             comment["parent_id"] = reply['rootMessageId']
-            comment["down_votes"] = reply['downVotesCount']
             comment["up_votes"] = reply['upVotesCount']
+            comment["down_votes"] = reply['downVotesCount']
             comments.append(comment)
 
         # print:
@@ -82,15 +83,21 @@ def get_list_of_comments(comments_in_spot_im_format, url):
     return comments
 
 
+def save_comments_as_csv(comments, filename):
+    with open(filename, 'w', newline='') as csvfile:
+        fieldnames = ['id', 'url', 'author', 'text', 'timestamp', 'parent_id', 'up_votes', 'down_votes']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        writer.writeheader()
+        writer.writerows(comments)
+
 
 if __name__ == '__main__':
     # news from 16 oct:
     # 'http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/'
     # other news id that works: 407028
-    #c = get_comments_of_news_as_json(406881)
-    #comments = get_list_of_comments(c, "http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/")
-
-    #for com in comments:
-    #    print(com)
+    #comments_in_spot_im_format = get_comments_of_news_as_json(406881)
+    #comments = get_list_of_comments(comments_in_spot_im_format, "http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/")
+    #save_comments_as_csv(comments, "comments.csv")
 
     get_list_of_news_ids(2014)
