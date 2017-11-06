@@ -4,6 +4,17 @@ import json
 import pprint
 
 
+def get_list_of_news_ids(year):
+    sitemap_url = "https://www.rt.com/sitemap_%d.xml" % year
+    articles_as_xml = requests.get(sitemap_url).text
+
+    matches = re.findall(r'/(\d{6})-', articles_as_xml)
+
+    print("Articles from %d: " % year, len(matches))
+
+    return matches
+
+
 def get_comments_of_news_as_json(news_id):
     # rt.com uses Spot.IM for the comment section
     # this message reads a JSON string directly from the corresponding Spot.IM page
@@ -76,8 +87,10 @@ if __name__ == '__main__':
     # news from 16 oct:
     # 'http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/'
     # other news id that works: 407028
-    c = get_comments_of_news_as_json(406881)
-    comments = get_list_of_comments(c, "http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/")
+    #c = get_comments_of_news_as_json(406881)
+    #comments = get_list_of_comments(c, "http://www.rt.com/usa/406881-trump-says-total-termination-of-iran-deal-possible/")
 
-    for com in comments:
-        print(com)
+    #for com in comments:
+    #    print(com)
+
+    get_list_of_news_ids(2014)
