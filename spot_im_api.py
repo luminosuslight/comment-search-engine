@@ -1,34 +1,42 @@
 import requests
 import re
 import json
-import pprint
+import time
 import csv
 import random
+import xml.etree.ElementTree as ET
 
 
-def get_ids_of_year(year):
-    sitemap_url = "https://www.rt.com/sitemap_%d.xml" % year
-    articles_as_xml = requests.get(sitemap_url).text
-    matches = re.findall(r'/(\d{6})-', articles_as_xml)
-
-    print("Articles from %d: " % year, len(matches))
-
-    # FIXME: return URLs too!
-    return matches
-
-
-def get_all_ids():
+def get_all_urls():
     # comment system (or at least the article IDs) in use since mid 2014
     # -> crawl 2014 - 2017
-    ids = []
+    urls = []
     for year in range(2014, 2018):
-        ids += get_ids_of_year(year)
+        urls += get_urls_of_year(year)
+    return urls
 
 
-def get_comments_in_spot_im_format(news_id):
+def get_urls_of_year(year):
+    sitemap_url = "https://www.rt.com/sitemap_%d.xml" % year
+    articles_as_xml = requests.get(sitemap_url).text
+    root = ET.fromstring(articles_as_xml[38:])
+
+    # all URLs start with https://www.rt.com/
+    # we will remove it to reduce memory consumption
+    prefix_length = len('https://www.rt.com/')
+
+    urls = []
+    for loc in root.iter('{http://www.sitemaps.org/schemas/sitemap/0.9}loc'):
+        urls.append(loc.text[prefix_length:])
+    print("Articles from %d: " % year, len(urls))
+    return urls
+
+
+def get_comments_of_article(url):
     # rt.com uses Spot.IM for the comment section
     # this method reads a JSON string directly from the corresponding Spot.IM page
 
+    news_id = get_id_from_url(url)
     comment_url = "https://spoxy-shard5.spot.im/v2/spot/sp_6phY2k0C/post/%s/" % news_id
     html = requests.get(comment_url).text
 
@@ -41,25 +49,15 @@ def get_comments_in_spot_im_format(news_id):
 
     # convert the JSON string to a Python object:
     comments_in_spot_im_format = json.loads(json_raw)
-    return comments_in_spot_im_format
+    comments = convert_spot_im_to_simple_comment_format(comments_in_spot_im_format, url)
+    return comments
 
 
-def print_comments_for_debugging(news_id):
-    comment_url = "https://spoxy-shard5.spot.im/v2/spot/sp_6phY2k0C/post/%s/" % news_id
-    html = requests.get(comment_url).text
-
-    regex_for_json = re.compile(r'window.__APP_STATE__= JSON.parse\("(.*)"\)')
-    regex_result = regex_for_json.search(html)
-    json_raw = regex_result.group(1)
-    json_raw = json_raw.replace('\\"', '"')
-    json_raw = json_raw.replace('\\"', '"')
-
-    comments_in_spot_im_format = json.loads(json_raw)
-
-    # print for debugging
-    pp = pprint.PrettyPrinter(indent=4)
-    pp.pprint(comments_in_spot_im_format["conversations"][0]["conversation"]["comments"])
-    print("--------------------------------")
+def get_id_from_url(url):
+    match = re.match(r'.*/(\d{6})-', url)
+    if not match:
+        return None
+    return match.group(1)
 
 
 def convert_spot_im_to_simple_comment_format(comments_in_spot_im_format, article_url):
@@ -106,18 +104,35 @@ def save_comments_as_csv(comments, filename):
 
 if __name__ == '__main__':
 
-    ids = get_ids_of_year(2015)
-    print(ids[:5])
-    random_ids = random.sample(ids, 5)
+    urls = get_urls_of_year(2015)
+    urls_to_crawl = random.sample(urls, 5)
 
     comments = []
-    for news_id in random_ids:
-        comments_in_spot_im_format = get_comments_in_spot_im_format(news_id)
-        comments += convert_spot_im_to_simple_comment_format(comments_in_spot_im_format, "missing_url")
+    urls_crawled = 0
+    url_count = len(urls_to_crawl)
+    sum_duration = 0
+    try:
+        for url in urls_to_crawl:
+            begin = time.time()
+            comments_of_article = get_comments_of_article(url)
+            sum_duration += time.time() - begin
+            time.sleep(0.5)
+            urls_crawled += 1
+            if comments_of_article:
+                comments += comments_of_article
+                print("%d%% - Comments crawled: %d" % ((urls_crawled / url_count) * 100, len(comments)))
+    except KeyboardInterrupt:
+        print("Stopped crawling articles.")
 
-    len_sum = 0
-    for c in comments:
-        print(c)
-    print("Comment count: ", len(comments))
+    print("Avg duration: %f" % (sum_duration / url_count))
 
-    # save_comments_as_csv(comments, "comments.csv")
+    save_comments_as_csv(comments, "comments.csv")
+    print("Saved comments as 'comments.csv'.")
+
+    # Some Statistics:
+    # avg. 302 bytes per comment
+    # avg. 7.42 comments per article
+    # ~96'000 articles
+    # -> 215 MByte CSV file
+    # avg. duration: 1.052442s / article
+    # -> ~28h crawling runtime without additional wait times
