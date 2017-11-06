@@ -375,3 +375,7 @@ TSWLatexianTemp*
 
 # expex forward references with \gathertags
 *-tags.tex
+
+.idea/comment-search-engine.iml
+.idea/misc.xml
+comments.csv
