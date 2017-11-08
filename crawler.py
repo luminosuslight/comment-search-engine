@@ -2,7 +2,6 @@ import re
 import json
 import time
 import csv
-import random
 import xml.etree.ElementTree as ET
 
 import requests
@@ -19,7 +18,10 @@ def get_all_urls():
 
 def get_urls_of_year(year):
     sitemap_url = "https://www.rt.com/sitemap_%d.xml" % year
-    articles_as_xml = requests.get(sitemap_url).text
+    try:
+        articles_as_xml = requests.get(sitemap_url).text
+    except Exception:
+        return []
     root = ET.fromstring(articles_as_xml[38:])
 
     # all URLs start with https://www.rt.com/
@@ -39,12 +41,17 @@ def get_comments_of_article(url):
 
     news_id = get_id_from_url(url)
     comment_url = "https://spoxy-shard5.spot.im/v2/spot/sp_6phY2k0C/post/%s/" % news_id
-    html = requests.get(comment_url).text
+    try:
+        html = requests.get(comment_url).text
+    except Exception:
+        return []
 
     # in the HTML file is a JSON part that includes the comments
     # this JSON part is extracted with a regex:
     regex_for_json = re.compile(r'window.__APP_STATE__= JSON.parse\("(.*)"\)')
     regex_result = regex_for_json.search(html)
+    if not regex_result:
+        return []
     json_raw = regex_result.group(1)
     json_raw = json_raw.replace('\\"', '"').replace('\\"', '"')
 
@@ -112,14 +119,20 @@ def crawl_and_save_year(year):
     sum_duration = 0
     try:
         for url in urls_to_crawl:
-            begin = time.time()
-            comments_of_article = get_comments_of_article(url)
-            sum_duration += time.time() - begin
-            # time.sleep(0.5)
-            urls_crawled += 1
-            if comments_of_article:
-                comments += comments_of_article
-                print("%d%% - Comments crawled: %d" % ((urls_crawled / url_count) * 100, len(comments)))
+            try:
+                begin = time.time()
+                comments_of_article = get_comments_of_article(url)
+                sum_duration += time.time() - begin
+                # time.sleep(0.5)
+                urls_crawled += 1
+                if comments_of_article:
+                    comments += comments_of_article
+                    print("%d%% - Comments crawled: %d" % ((urls_crawled / url_count) * 100, len(comments)))
+            except KeyboardInterrupt:
+                raise
+            except Exception as e:
+                print("Error while crawling an article:", e)
+                continue
     except KeyboardInterrupt:
         print("Stopped crawling articles.")
 
