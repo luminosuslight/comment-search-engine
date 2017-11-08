@@ -103,9 +103,8 @@ def save_comments_as_csv(comments, filename):
         writer.writerows(comments)
 
 
-def run():
-    urls = get_urls_of_year(2015)
-    urls_to_crawl = random.sample(urls, 5)
+def crawl_and_save_year(year):
+    urls_to_crawl = get_urls_of_year(year)
 
     comments = []
     urls_crawled = 0
@@ -116,7 +115,7 @@ def run():
             begin = time.time()
             comments_of_article = get_comments_of_article(url)
             sum_duration += time.time() - begin
-            time.sleep(0.5)
+            # time.sleep(0.5)
             urls_crawled += 1
             if comments_of_article:
                 comments += comments_of_article
@@ -126,8 +125,13 @@ def run():
 
     print("Avg duration: %f" % (sum_duration / url_count))
 
-    save_comments_as_csv(comments, "comments.csv")
-    print("Saved comments as 'comments.csv'.")
+    filename = "data/comments_%d.csv" % year
+    save_comments_as_csv(comments, filename)
+    print("Saved comments as '%s'." % filename)
+
+
+def run():
+    crawl_and_save_year(2017)
 
     # Some Statistics:
     # avg. 302 bytes per comment
