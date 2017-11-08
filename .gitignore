@@ -378,4 +378,4 @@ TSWLatexianTemp*
 
 .idea/comment-search-engine.iml
 .idea/misc.xml
-comments.csv
+comments*.csv
