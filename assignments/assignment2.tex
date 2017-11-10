@@ -1,6 +1,9 @@
 \documentclass{scrartcl}
-
+% wegen deutschen Umlauten
 \usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+
 \usepackage{fancyhdr}
 \usepackage[colorlinks, linkcolor = black, citecolor = black, filecolor = black, urlcolor = blue]{hyperref}
 
@@ -34,26 +37,32 @@
 
 \subsection{What are the main differences between Web search and Newspaper Comment search?}
 
-From a general point of view, Web search represents the seek of information among all existing data in the internet. In the other hand Newspaper comment search represents only search in comments of newspaper article written by newspaper's readers.
+From a general point of view, web search represents the seek of information among all existing data in the Internet while newspaper comment search represents only search in comments of newspaper article written by newspaper's readers.
 
-Since the newspaper comment are existing in the internet, could the newspaper comment search be represented as a unit of Web search. When the web search covers his sources on all the web, Newspaper comment search focuses only on the comment's contents, thereby in order to seek for specific comments it is more suitable to employ newspaper comment searching instead of web searching to avoid a swamp of other unwanted type of results.
+The ranking mechanisms can be very different as incoming links are only well suited to rank webpages but not comments and comments can be for example ranked better according to their upvotes (if present).
+
+Web search is usually done on a much larger corpus than comment search, too. Comment search could even be regarded as a subset of a general web search.
+
+Information noise such as ads and duplicated content is a much smaller problem with comment search than with web search. But on the other hand comment search has different characteristics that need to be considered such as the hierarchical structure of most comment pages.
+
+To avoid a swamp of other unwanted type of results, it is more suitable to use a specialized comment search engine when the information need of the user focuses on newspaper comments.
 
 \subsection{Why would someone search for newspaper comments? Considering different kinds of comment searchers, i.e. newspaper readers, article authors, social scientists, etc. which are the main reasons for searching comments?}
 
-Newspaper comments represent mainly the reaction of reader on the post's subject and contents. These comments could help certain specialist in analyzing the flow of people opinions in terms of the information that they read for scientific, socialist or political goals.
+The readers of the newspaper could want to find articles that support their opinion or articles that were praised by other readers in the comments.
 
-Many readers seek also for comment to interact with them or to look for other opinions, which are suitable with his. The reader author could through comment analyze, what kind of topic the reader looks for and with which ideology should he convey his information in order to please the majority of them.
+The article authors may need to find heavily discussed topics as an inspiration for new articles. The may also want to know if there are comments that criticize the content or found point out a wrong information.
 
-Comments can also contain critics about the author, and they may reveal other information that were not taken in consideration, which could also please the informational need of others.
+Social scientists could use comment search to find out what articles result in hate speech or how political opinions are distributed.
 
 
 \section{Text Processing}
 
 \subsection{What are the pros and cons of using a stopword filter? }
 
-The stopping task in indexing preprocessing aims mainly to reduce the number of occured words in the text following a choosen stopwords filter, which are not pertinent for the text context. By eliminating the most occurred words in texts, which denote stopwords in most of cases, we reduce the index space strongly (potentially 40\% of existing words in the english language), what advantage the storage saving. Reducing indexes for a text minimize the number of relevant word occured in a text, thereby the response time will be improved in the seeking task.
-Although the stop words represent usually words that have no major meaning in the text such as pronoun or preposition, their removement may cause search limitation in some texts, which focus on one of those stopwords. Example: Searching for the band "The Who". Other big disadvantage that some of stopword may represent verb preposition and their elimination may change the whole context of phrase.
+The task  of removing stopwords following a previously chosen stopword list while preprocessing the texts for indexing aims mainly at reducing the number of words which are not pertinent for the text context. By eliminating the most occurring words in texts, which denote stopwords in most cases, we reduce the storage space needed for the index heavily (potentially 40\% of existing words are stopwords in the English language). This can also improve the response time while searching because less information has to be read from disk.
 
+Although the stop words usually represent words that have no major meaning in the text (such as pronouns or prepositions), their deletion may cause search limitation for some queries that focus on one of those stopwords. Searching for the band "The Who" will be nearly impossible after removing the stopwords before indexing. Another big disadvantage is that some of the stopwords may represent verb preposition and their elimination may change the whole context of phrase. Searching for negated queries could be harder then.
 
 \subsection{Are there any specific stopwords for comments or similar short posts used in the literature?}
 
@@ -61,20 +70,64 @@ Generally article's comments are about the context of the article. Some specific
 
 \subsection{What are the pros and cons of stemming and lemmatization?}
 
-Stemming and lemmatization are used in the preprocessing of texts by reducing each token to its stem, which denotes the domain of the word. By reducing all words to their domain the index space will necessarily be reduced, thus the response time will be improved.
+Stemming and lemmatization are used in the preprocessing of texts by reducing each token to its stem, which denotes the domain of the word. By reducing all words to their domain the count of indexed terms will necessarily be reduced, thus the response time will be improved (random accesses to many posting lists are prevented and sequential read can be performed on one large list).
 
-Although this improvement is minimal for some languages as English or French, it may be very crucial for other languages such as the Arabic language. One other big benefit that both of Stemming and lemmatization yield is text or query rectification. While grammatical or conjugation faults may occur in texts or (generally) queries, reducing those fault to their domain term or infinitive will increase strongly in the effectiveness of the seek and avoid involuntary mismatches.
+Although this improvement is not very large for some languages as English or French, it may be very crucial for other languages such as the Arabic language. One other big benefit that both of stemming and lemmatization yield is text or query rectification. While grammatical or conjugation faults may occur in texts or (generally) queries, reducing those faults to their domain term or infinitive will increase strongly in the effectiveness of the seek and avoid involuntary mismatches. Even without faults in the query or in the text, words with the same stem often contain the same information and are relevant for the same query.
 
-In an other point of view, Stemming and lemmatization may be a hard task to achieve even in preprocessing. Generally processed using algorithms, these may produce errors in refactoring some words by changing their true meaning or even by transforming the word into a stem, that has no meaning, which can yield confusions and decrease the relevance of queries.
+In an other point of view, stemming and lemmatization may be a hard task to achieve even in preprocessing. Generally processed using algorithms, these may produce errors in refactoring some words by changing their true meaning or even by transforming the word into a stem, that has no meaning, which can yield confusions and decrease the relevance of queries.
 
 \subsection{Can stemming lower precision or recall in a simple keyword retrieval system? Explain your answer.}
 
-As the Stemming and Lemmatization task are processed with an automatic way through algorithms, may indexed or query words lose their real meaning and hence confusions may occur in matching query words with the indexed word. This issue can low strongly the precision of the result by returning matched data that are irrelevant to the user need with the potentially relevant data. In example, we query " the Biggest organization" that may be transformed to "big organ" and thus returns a bunch of irrelevant information. Following this reasoning the recall metric do not fear any decreasement since the relevant information are also returned unless if preprocessed words lose completely their meaning so it will not be returned if it is indexed.
+As the Stemming and Lemmatization tasks are processed in an automatic way through algorithms, indexed or query words may lose their real meaning and hence confusions may occur in matching query words with the indexed word. This issue can lower the precision of the results strongly by returning data that is irrelevant for the users information need. For example, when searching for "the Biggest organization", the query may be transformed to "big organ" and thus returns a bunch of irrelevant information.
+
+Following this reasoning the recall metric does not fear any decrease since the relevant information is also still returned if the query is stemmed or lemmatized in the same way as the corpus.
 
 \section{(Programming) Indexing}
 
 \subsection{Print a list of the comments (comment text only; no other attributes) in your dataset that
 match the queries: }
+
+\begin{lstlisting}
+Searching:  October
+Found 48 results in 0.21ms.
+But sadly most of people's referendum are declared as "not binding" from the beginning - as are the coming one's in Italy for Lombardy and Venetia on the 22nd of October.
+The Red Army was created after the success of the October Revolution  in 1917 led by V.I. Ulyanov (Lenin).\nThirty five years later the Red Army smashed the fascist armies of Germany, Finland, Hungary, Romania, Italy, Croatia and Slovakia.\nThe bodies of tens of thousands rascist/anti-semitic fascists fertilized Soviet territory helping the recovery of Soviet lands.\nYou stand with all that is immoral.
+Yep. Between 6-8 million between April 1945 and October 1949.
+Yeah but they're always wet as October.  That's always a plus.
+May called Swamp on October 10th on JCPOA. It was decided then. Brits are ahead of Trump in the lineup for Tel Aviv.
+
+Searching:  jobs
+Found 2847 results in 2.29ms.
+You name three countries brougt to their knees by islamic invasions and terrorism,sjw terrorist infiltration of govt jobs but its soon going to end. Camps for the terrorists and their support base.. just wait n watch history repeat.
+consequences are that his political career is over. This situation clearly demonstrate that EU and PACE is not about solutions. That is not their job. Their job is to execute orders and this guy see the full consequences of thinking independently and toward peace.
+"form a film and production crew for the purposes of producing a video documentary based on its research associated with Mr. Guelen." so the job is similar to other USA 'consulting firm', like film about Maidan, White Helmet, ISIS beheading series ( wonder when the season finale is.)
+Agree-and he is doing the same job, the British elite did 80 years or more before...
+So true.\n\nAcademically questioning holocaust will make you lost job in University and land you in a jail.
+
+Searching:  Trump
+Found 7455 results in 6.08ms.
+Who believes you Trump? You are the biggest self-loving opportunistic liar in politics. You arm Saudi Arabia and call Iran terrorists. You want peace in the middle east but support the settlement building of Israel in Palastine. You claim that the actions against Qatar are in support of your vision on Iran, yet you have a military base in Qatar from where you bomb Syria. Go away Trump!
+Just months ago, Donald Trump was thanking Wikileaks and asking them to expose more about Hillary Clinton. Now he wants to arrest and jail the founder?
+Trump lies about crime numbers, terrorist attacks, his taxes, ...
+I think she has the goods on Trump.
+No need.   Trump is just a wee little froggie in a great, big swamp.
+
+Searching:  hate
+Found 2247 results in 1.73ms.
+I am a bosnian turk. I support Russia Putin and RT and support BRICS. Hate NWO and USA and NATO.\nMost of the Turks are just sheeps with no awareness no understanding what is going on earth.\nBut not all Turks my Russian friend.
+Do you blame Pinochet, or the people that made it possible for him to commit those atrocities? \nOh and yes Russian names, though mostly western educated jews. As much as i hate jewbashing.
+You don't hate to think about it actually
+Symbols and words are hate crimes, but bullets and explosions are not
+True tru and true again. 90's were disgucting disaster.While those oligarch liberals were pocketing on USSR wealth, and flushign it into foreign banks, regular working Russian people were starving. And of course those liberals miss those days when they could easily rob, and wish to get back to those times. They hate Russia, they only love money they can steal from the people, and those people who support them are so gullible and dumb.
+\end{lstlisting}
+
+\paragraph{Implementation Choices}
+
+\begin{itemize}
+	\item Stopword List: as there are no special stopwords in our use-case for RT.com, we are using nltk.corpus.stopwords (Porter et al	2,400 stopwords for 11 languages)
+	\item Stemmer: using nltk.stem.porter.PorterStemmer (widely regarded as the most universal stemmer in NLTK)
+	\item Lemmatizer: not used at the moment (search results were sufficient without it)
+\end{itemize}
 
 
 

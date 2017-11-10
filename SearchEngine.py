@@ -1,4 +1,5 @@
 import csv
+import time
 
 import nltk
 from nltk.corpus import stopwords
@@ -17,14 +18,20 @@ class SearchEngine(object):
         self._stemmer = PorterStemmer()
 
     def index(self, filename):
+        print("Indexing...")
+        begin = time.time()
+
         with open(filename, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             i = 0  # stop after 10 comments for debugging
             for row in reader:
                 self.index_comment(row)
                 i += 1
-                if i > 10:
-                    break
+                if not i % 10000:
+                    print("%d comments indexed" % i)
+
+        duration = time.time() - begin
+        print("Indexing completed (%.2fs)" % duration)
 
     def index_comment(self, comment):
         # get short id (the 'id' in comment is a rather long string):
@@ -61,6 +68,7 @@ class SearchEngine(object):
 
     def search(self, query):
         print("Searching: ", query)
+        begin = time.time()
         results = []
         tokens = self.get_tokens(query)
 
@@ -73,21 +81,22 @@ class SearchEngine(object):
         for doc_id in relevant_doc_ids:
             comment = self._short_id_to_comment[doc_id]
             results.append(comment)
-
+        duration = time.time() - begin
+        print("Found %d results in %.2fms." % (len(results), duration * 1000))
         return results
 
     def print_assignment2_query_results(self):
-        # print first 3 results of every search result:
-        print("\n".join([c['text'] for c in searchEngine.search("October")[:3]]))
-        print("\n".join([c['text'] for c in searchEngine.search("jobs")[:3]]))
-        print("\n".join([c['text'] for c in searchEngine.search("Trump")[:3]]))
-        print("\n".join([c['text'] for c in searchEngine.search("hate")[:3]]))
-        print("\n".join([c['text'] for c in searchEngine.search("art")[:3]]))
+        # print first 5 results of every search result:
+        print("\n".join([c['text'] for c in searchEngine.search("October")[:5]]))
+        print("\n".join([c['text'] for c in searchEngine.search("jobs")[:5]]))
+        print("\n".join([c['text'] for c in searchEngine.search("Trump")[:5]]))
+        print("\n".join([c['text'] for c in searchEngine.search("hate")[:5]]))
+        print("\n".join([c['text'] for c in searchEngine.search("some cool stuff")[:5]]))
 
 
 if __name__ == '__main__':
     searchEngine = SearchEngine()
 
-    searchEngine.index('data/comments.csv')
+    searchEngine.index('data/comments_2017.csv')
 
     searchEngine.print_assignment2_query_results()
