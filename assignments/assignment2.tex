@@ -20,7 +20,7 @@
 \newcommand*{\inlinecode}[1]{\texttt{#1}}
 
 
-\title{Assignment 1}
+\title{Assignment 2}
 \subtitle{Information Retrieval and Web Search}
 \author{Ahmed Rekik - 790063 \& Tim Henning - 789242}
 \pagestyle{fancy}
@@ -49,9 +49,11 @@ To avoid a swamp of other unwanted type of results, it is more suitable to use a
 
 \subsection{Why would someone search for newspaper comments? Considering different kinds of comment searchers, i.e. newspaper readers, article authors, social scientists, etc. which are the main reasons for searching comments?}
 
+In general, newspaper comments represent the reader's reaction in term of an article content. Those comments have their benefits and they could be useful  for the article author but also for readers.
+
 The readers of the newspaper could want to find articles that support their opinion or articles that were praised by other readers in the comments.
 
-The article authors may need to find heavily discussed topics as an inspiration for new articles. The may also want to know if there are comments that criticize the content or found point out a wrong information.
+The article authors may need to find heavily discussed topics as an inspiration for new articles. They may also want to know if there are comments that criticize the content or found point out a wrong information.
 
 Social scientists could use comment search to find out what articles result in hate speech or how political opinions are distributed.
 
@@ -74,11 +76,11 @@ Stemming and lemmatization are used in the preprocessing of texts by reducing ea
 
 Although this improvement is not very large for some languages as English or French, it may be very crucial for other languages such as the Arabic language. One other big benefit that both of stemming and lemmatization yield is text or query rectification. While grammatical or conjugation faults may occur in texts or (generally) queries, reducing those faults to their domain term or infinitive will increase strongly in the effectiveness of the seek and avoid involuntary mismatches. Even without faults in the query or in the text, words with the same stem often contain the same information and are relevant for the same query.
 
-In an other point of view, stemming and lemmatization may be a hard task to achieve even in preprocessing. Generally processed using algorithms, these may produce errors in refactoring some words by changing their true meaning or even by transforming the word into a stem, that has no meaning, which can yield confusions and decrease the relevance of queries.
+In an other point of view, stemming and lemmatization may be a hard task to achieve even in preprocessing. Generally processed using algorithms, these may produce errors in refactoring some words by changing their true meaning or even by transforming the word into a stem, that has no meaning, which can yield confusions and decrease the relevance of a query results.
 
 \subsection{Can stemming lower precision or recall in a simple keyword retrieval system? Explain your answer.}
 
-As the Stemming and Lemmatization tasks are processed in an automatic way through algorithms, indexed or query words may lose their real meaning and hence confusions may occur in matching query words with the indexed word. This issue can lower the precision of the results strongly by returning data that is irrelevant for the users information need. For example, when searching for "the Biggest organization", the query may be transformed to "big organ" and thus returns a bunch of irrelevant information.
+As the Stemming and Lemmatization tasks are processed in an automatic way through algorithms, indexed or query words may lose their real meaning and hence confusions may occur in matching query words with the indexed word. This issue can lower the precision of the results strongly by returning data that is irrelevant for the users information need. For example, when searching for "the Biggest organization", the query may be transformed to "big organ" and thus returns a bunch of irrelevant information with the relevant ones.
 
 Following this reasoning the recall metric does not fear any decrease since the relevant information is also still returned if the query is stemmed or lemmatized in the same way as the corpus.
 
