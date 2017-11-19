@@ -4,6 +4,7 @@ import pickle
 import os
 import time
 import shutil
+from bisect import bisect_left
 
 import nltk
 from nltk.corpus import stopwords
@@ -20,6 +21,7 @@ class SearchEngine(object):
 
         self._postings = {}
         self._seek_list = None
+        self._seek_positions = None
         self._postings_file = None
         self._data_file = None
 
@@ -76,7 +78,7 @@ class SearchEngine(object):
         # add position numbers, remove punctuation and stem words:
         stops = self._stopwords  # faster than multiple accesses to instance variable
         stemmed_words = [(pos, self._stemmer.stem(word)) for (pos, word) in enumerate(tokens) if
-                         word not in stops and word.isalpha()]
+                         word not in stops and word.isalpha() or word.endswith("*")]
         return stemmed_words
 
     def _write_index_part_to_disk(self):
@@ -107,7 +109,8 @@ class SearchEngine(object):
             readers[reader] = next(reader)
 
         postings_file = open(self._postings_filename, 'w', newline='')
-        seek_list = {}
+        seek_list = []
+        seek_positions = []
 
         # This is a K-Way merging algorithm:
         # In each step we look at the next word in each part file.
@@ -128,13 +131,14 @@ class SearchEngine(object):
                     readers[reader] = next(reader, ["", None])
 
             # store index of posting in postings file:
-            seek_list[word] = postings_file.tell()
+            seek_list.append(word)
+            seek_positions.append(postings_file.tell())
             # write posting list to postings file:
             postings_file.write(json.dumps(complete_posting, separators=(',', ':')) + '\n')
 
         # write seek list to disk:
         with open(self._seek_filename, 'wb') as seek_file:
-            seek_file.write(pickle.dumps(seek_list))
+            seek_file.write(pickle.dumps((seek_list, seek_positions)))
 
         # close files:
         postings_file.close()
@@ -143,36 +147,74 @@ class SearchEngine(object):
 
     def load_index(self):
         with open(self._seek_filename, 'rb') as seek_file:
-            self._seek_list = pickle.load(seek_file)
+            self._seek_list, self._seek_positions = pickle.load(seek_file)
 
         self._postings_file = open(self._postings_filename, 'r', newline='')
         self._data_file = open(self._data_filename, 'r', newline='')
 
     def get_postings(self, word):
-        pos = self._seek_list.get(word, -1)
-        if pos < 0:
-            print("Word is not in seek list:", word)
-            return []
-        self._postings_file.seek(pos)
-        line = self._postings_file.readline()
-        return json.loads(line)
+        prefix = word.endswith("*")
+        word = word.replace("*", "")
+
+        i = bisect_left(self._seek_list, word)
+        postings = []
+        if prefix:
+            if not i:
+                print("Word is not in seek list:", word)
+                return []
+
+            while True:
+                token = self._seek_list[i]
+                if not token.startswith(word):
+                    break
+                pos = self._seek_positions[i]
+                self._postings_file.seek(pos)
+                line = self._postings_file.readline()
+                postings = postings + json.loads(line)
+                i = i+1
+
+        else:  # exact match
+            if i == len(self._seek_list) or self._seek_list[i] != word:
+                print("Word is not in seek list:", word)
+                return []
+
+            pos = self._seek_positions[i]
+            self._postings_file.seek(pos)
+            line = self._postings_file.readline()
+            postings = json.loads(line)
+        return postings
 
     def search(self, query):
         print("Searching: ", query)
         begin = time.time()
 
+        phrase_query = query.startswith("'") and query.endswith("'")
+
         tokens = self.get_tokens(query)
 
         all_postings = []
         for pos, word in tokens:
-            all_postings.append(set([doc_id for doc_id, pos in self.get_postings(word)]))
+            all_postings.append(set([comment_id for comment_id, pos in self.get_postings(word)]))
 
-        relevant_doc_ids = set.intersection(*all_postings)
+        if " NOT " in query:
+            if len(all_postings) != 2:
+                print("Invalid query")
+                return []
+            relevant_doc_ids = all_postings[0] - all_postings[1]
+        elif " OR " in query:
+            relevant_doc_ids = set.union(*all_postings)
+        else:  # AND
+            relevant_doc_ids = set.intersection(*all_postings)
 
         results = []
         for doc_id in relevant_doc_ids:
             comment = self.get_comment(doc_id)
             results.append(comment)
+
+        if phrase_query:
+            for comment in results.copy():
+                if query.replace("'", "").lower() not in comment[3].lower():
+                    results.remove(comment)
 
         duration = time.time() - begin
         print("Found %d results in %.2fms." % (len(results), duration * 1000))
@@ -187,11 +229,17 @@ class SearchEngine(object):
 
     def print_assignment2_query_results(self):
         # print first 5 results for every query:
-        print("\n".join([c[3] for c in self.search("October")[:5]]))
-        print("\n".join([c[3] for c in self.search("jobs")[:5]]))
-        print("\n".join([c[3] for c in self.search("Trump")[:5]]))
-        print("\n".join([c[3] for c in self.search("hate")[:5]]))
-        print("\n".join([c[3] for c in self.search("some cool stuff")[:5]]))
+        print("\n".join([c[3] for c in self.search("October")[:5]]) + "\n")
+        print("\n".join([c[3] for c in self.search("jobs")[:5]]) + "\n")
+        print("\n".join([c[3] for c in self.search("Trump")[:5]]) + "\n")
+        print("\n".join([c[3] for c in self.search("hate")[:5]]) + "\n")
+        print("\n".join([c[3] for c in self.search("party AND chancellor")[:5]]) + "\n")
+        print("\n".join([c[3] for c in self.search("party NOT politics")[:5]]) + "\n")
+        print("\n".join([c[3] for c in self.search("war OR conflict")[:5]]) + "\n")
+        print("\n".join([c[3] for c in self.search("euro* NOT europe")[:5]]) + "\n")
+        print("\n".join([c[3] for c in self.search("publi* NOT moderation")[:5]]) + "\n")
+        print("\n".join([c[3] for c in self.search("'the european union'")[:5]]) + "\n")
+        print("\n".join([c[3] for c in self.search("'christmas market'")[:5]]) + "\n")
 
 
 if __name__ == '__main__':
