@@ -96,50 +96,39 @@ word                         & tf & wf  & df     & q\_i = wf-idf & tf & wf  & d\
 \section{(Programming) Boolean Queries
 }
 
-\subsection{Print a list of the comments (comment text only; no other attributes) in your dataset that
-match the queries: }
+\subsection{Print the number of comments that match the following queries and one example comment
+	per query (if there are any matches):}
 
 \begin{lstlisting}
-Searching:  October
-Found 48 results in 0.21ms.
-But sadly most of people's referendum are declared as "not binding" from the beginning - as are the coming one's in Italy for Lombardy and Venetia on the 22nd of October.
-The Red Army was created after the success of the October Revolution  in 1917 led by V.I. Ulyanov (Lenin).\nThirty five years later the Red Army smashed the fascist armies of Germany, Finland, Hungary, Romania, Italy, Croatia and Slovakia.\nThe bodies of tens of thousands rascist/anti-semitic fascists fertilized Soviet territory helping the recovery of Soviet lands.\nYou stand with all that is immoral.
-Yep. Between 6-8 million between April 1945 and October 1949.
-Yeah but they're always wet as October.  That's always a plus.
-May called Swamp on October 10th on JCPOA. It was decided then. Brits are ahead of Trump in the lineup for Tel Aviv.
+Searching:  party AND chancellor
+Found 1 results in 1.52ms.
+The AfD is not "far-right". Conservative, liberal, but not "far-right". It is best comparable to the CDU under (Chancellor) Helmut Kohl,- before Angela Merkel has taken over the party and turned it into a hotpot of neo-liberalism, leftist ideology, multi-cultural fancies and mass-immigration policy.
 
-Searching:  jobs
-Found 2847 results in 2.29ms.
-You name three countries brougt to their knees by islamic invasions and terrorism,sjw terrorist infiltration of govt jobs but its soon going to end. Camps for the terrorists and their support base.. just wait n watch history repeat.
-consequences are that his political career is over. This situation clearly demonstrate that EU and PACE is not about solutions. That is not their job. Their job is to execute orders and this guy see the full consequences of thinking independently and toward peace.
-"form a film and production crew for the purposes of producing a video documentary based on its research associated with Mr. Guelen." so the job is similar to other USA 'consulting firm', like film about Maidan, White Helmet, ISIS beheading series ( wonder when the season finale is.)
-Agree-and he is doing the same job, the British elite did 80 years or more before...
-So true.\n\nAcademically questioning holocaust will make you lost job in University and land you in a jail.
+Searching:  party NOT politics
+Found 1475 results in 49.48ms.
+The STATE sponsored TERROR and HORROR inflicted upon (White, Orthodox Christian) people in Russia since 1917 was because of the direct actions of the JEWISH BOLSHEVIKS of Lenin (and his Party competitor) Trotsky - who took TOTAL power, financed by their Satanist bosses, namely the Rothschild Banking Cartel.  Stalin had three Jewish wives.
 
-Searching:  Trump
-Found 7455 results in 6.08ms.
-Who believes you Trump? You are the biggest self-loving opportunistic liar in politics. You arm Saudi Arabia and call Iran terrorists. You want peace in the middle east but support the settlement building of Israel in Palastine. You claim that the actions against Qatar are in support of your vision on Iran, yet you have a military base in Qatar from where you bomb Syria. Go away Trump!
-Just months ago, Donald Trump was thanking Wikileaks and asking them to expose more about Hillary Clinton. Now he wants to arrest and jail the founder?
-Trump lies about crime numbers, terrorist attacks, his taxes, ...
-I think she has the goods on Trump.
-No need.   Trump is just a wee little froggie in a great, big swamp.
+Searching:  war OR conflict
+Found 8215 results in 289.46ms.
+The axis powers were  doing the same thing. It doesn't excuse the allies for doing it, but that's why they call it Total War.
 
-Searching:  hate
-Found 2247 results in 1.73ms.
-I am a bosnian turk. I support Russia Putin and RT and support BRICS. Hate NWO and USA and NATO.\nMost of the Turks are just sheeps with no awareness no understanding what is going on earth.\nBut not all Turks my Russian friend.
-Do you blame Pinochet, or the people that made it possible for him to commit those atrocities? \nOh and yes Russian names, though mostly western educated jews. As much as i hate jewbashing.
-You don't hate to think about it actually
-Symbols and words are hate crimes, but bullets and explosions are not
-True tru and true again. 90's were disgucting disaster.While those oligarch liberals were pocketing on USSR wealth, and flushign it into foreign banks, regular working Russian people were starving. And of course those liberals miss those days when they could easily rob, and wish to get back to those times. They hate Russia, they only love money they can steal from the people, and those people who support them are so gullible and dumb.
+Searching:  euro* NOT europe
+Found 2184 results in 83.64ms.
+The creation of the Euro was an act of political incest. And like the progeny of all incestuous couplings the result is doomed to a short and painful life. The sooner it is put out of its misery the better.
+
+Searching:  publi* NOT moderation
+Found 2249 results in 73.62ms.
+These people are patriots and should be supported by the public
+
+Searching:  'the european union'
+Found 106 results in 8.85ms.
+Hungary working hard like many other European Countries to Stop Migration and,\nthe European Union working hard to let more Illegal Migrants in !\n\nTime for the European Union to change its views, else Referendums are a MUST !\n\nVote for Leaders Who Promise to Tackle Illegal Migration and Invasions ! Future is in your VOTE!
+
+Searching:  'christmas market'
+Found 4 results in 34.41ms.
+Thus it indicates what the motive and agenda is. Governments attack their own people, unarmed and unaware to further their own agenda, they never attack the military or police or politicians. Good rule of judgement, police bus bombed >> real, Christmas market or nightclub shot up >> shadow government.
+
 \end{lstlisting}
-
-\paragraph{Implementation Choices}
-
-\begin{itemize}
-	\item Stopword List: as there are no special stopwords in our use-case for RT.com, we are using nltk.corpus.stopwords (Porter et al	2,400 stopwords for 11 languages)
-	\item Stemmer: using nltk.stem.porter.PorterStemmer (widely regarded as the most universal stemmer in NLTK)
-	\item Lemmatizer: not used at the moment (search results were sufficient without it)
-\end{itemize}
 
 
 

@@ -233,13 +233,13 @@ class SearchEngine(object):
         print("\n".join([c[3] for c in self.search("jobs")[:5]]) + "\n")
         print("\n".join([c[3] for c in self.search("Trump")[:5]]) + "\n")
         print("\n".join([c[3] for c in self.search("hate")[:5]]) + "\n")
-        print("\n".join([c[3] for c in self.search("party AND chancellor")[:5]]) + "\n")
-        print("\n".join([c[3] for c in self.search("party NOT politics")[:5]]) + "\n")
-        print("\n".join([c[3] for c in self.search("war OR conflict")[:5]]) + "\n")
-        print("\n".join([c[3] for c in self.search("euro* NOT europe")[:5]]) + "\n")
-        print("\n".join([c[3] for c in self.search("publi* NOT moderation")[:5]]) + "\n")
-        print("\n".join([c[3] for c in self.search("'the european union'")[:5]]) + "\n")
-        print("\n".join([c[3] for c in self.search("'christmas market'")[:5]]) + "\n")
+        print("\n".join([c[3] for c in self.search("party AND chancellor")[:1]]) + "\n")
+        print("\n".join([c[3] for c in self.search("party NOT politics")[:1]]) + "\n")
+        print("\n".join([c[3] for c in self.search("war OR conflict")[:1]]) + "\n")
+        print("\n".join([c[3] for c in self.search("euro* NOT europe")[:1]]) + "\n")
+        print("\n".join([c[3] for c in self.search("publi* NOT moderation")[:1]]) + "\n")
+        print("\n".join([c[3] for c in self.search("'the european union'")[:1]]) + "\n")
+        print("\n".join([c[3] for c in self.search("'christmas market'")[:1]]) + "\n")
 
 
 if __name__ == '__main__':
