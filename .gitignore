@@ -379,3 +379,5 @@ TSWLatexianTemp*
 .idea/comment-search-engine.iml
 .idea/misc.xml
 comments*.csv
+postings.dat
+seek.dat

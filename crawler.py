@@ -2,6 +2,7 @@ import re
 import json
 import time
 import csv
+import os
 import xml.etree.ElementTree as ET
 
 import requests
@@ -144,6 +145,9 @@ def crawl_and_save_year(year):
 
 
 def run():
+    if not os.path.exists('data'):
+        os.makedirs('data')
+
     crawl_and_save_year(2017)
 
     # Some Statistics:
