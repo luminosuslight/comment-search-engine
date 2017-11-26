@@ -37,7 +37,7 @@
 \subsection{One of the drawbacks of the Boolean retrieval model lies in the size of the returned result
 set. Why is the size typically difficult to control? }
 
-The fact that the IR with a Boolean retrieval model returns an out of hand result set is due to its absolute Boolean property. While the result depends on query terms, these could occur in relevant as non relevant documents, thereby the size of the result will be hard to control and unpredictable. As an example by querying "House AND President" one can expect documents about the president's house but he can get instead a document in which the word "President" occurs in the first page and "House" in the last page.
+The fact that the IR with a Boolean retrieval model returns an out of hand result set is due to its absolute Boolean property. While the result depends on query terms, these could occur in relevant as non relevant and superfluous documents, thereby the size of the result will be hard to control and unpredictable. As an example by querying "House AND President" one can expect documents about the president's house but he can get instead a document in which the word "President" occurs in the first page and "House" in the last page.
 
 
 \subsection{According to query log statistics, most queries do not contain search operators. Why are
@@ -46,7 +46,7 @@ search precision or recall oriented? }
 
 Although they might not be frequently employed, search operators represent an efficient tool to elaborate queries in a more expressive way in order to increase chance to hit relevant documents. Since professional search might generally intend very specific documents, those could be not easy to reach with the regular queries and without specifying multiple predicates for their search.
 
-A very specific document aimed for a professional use may contain frequent word that occur in other documents often, therefore by querying without employing several predicates irrelevant documents will submerge the relevant one. Thus, by using operator ("AND", "OR") for providing very specific key-word and eliminating the undesirable document subjects (using "NOT" operator) the professional could reach the precise document faster.
+A very specific document aimed for a professional use may contain frequent word that occur in other documents often, therefore by querying without employing several predicates irrelevant documents will submerge the relevant one. Thus, by using operator ("AND", "OR") for providing very specific key-word and eliminating the undesirable document subjects (using "NOT" operator), professionals could reach the precise intended documents faster.
 
 As expressed above, the professional use in information retrieval tend more to the effective and pertinent result. Since their searchs look for (very) specific information (source, format...) and they want to find \textit{all} documents containing it, their search should rather be recall-oriented. Otherwise, the consumer in general is more tolerant about missing documents but wants to find at least one that is relevant, thus the consumer search would be more precision-oriented.
 
