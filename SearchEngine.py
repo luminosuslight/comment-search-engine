@@ -22,6 +22,7 @@ class SearchEngine(object):
         self._postings = {}
         self._seek_list = None
         self._seek_positions = None
+
         self._postings_file = None
         self._data_file = None
 
@@ -32,37 +33,41 @@ class SearchEngine(object):
             shutil.rmtree(self._index_part_dir)
         os.makedirs(self._index_part_dir)
 
-    def index(self):
+    def create_index(self):
         if os.path.exists(self._postings_filename):
-            print("Already indexed.")
+            print("Already indexed. Delete index to regenerate it.\n")
             return
 
         print("Indexing...")
         begin = time.time()
+        self._index_data()
+        duration = time.time() - begin
+        print("Indexing completed (%.2fs)" % duration)
 
+        print("Merging parts...")
+        begin = time.time()
+        self._merge()
+        duration = time.time() - begin
+        print("Merging parts completed (%.2fs)" % duration)
+
+    def _index_data(self):
         with open(self._data_filename, 'r', newline='') as csvfile:
             # skip header:
             csvfile.readline()
             # initial position:
             pos = csvfile.tell()
             comment_count = 0
+
             for line in iter(csvfile.readline, ''):
                 comment_id = pos
                 comment = next(csv.reader([line]))
                 self._index_comment(comment, comment_id)
+                pos = csvfile.tell()
+
                 comment_count += 1
                 if not comment_count % 10000:
                     print("%d comments processed" % comment_count)
                     self._write_index_part_to_disk()
-                pos = csvfile.tell()
-
-        duration = time.time() - begin
-        print("Indexing completed (%.2fs)" % duration)
-
-        begin = time.time()
-        self._merge()
-        duration = time.time() - begin
-        print("Merging parts completed (%.2fs)" % duration)
 
     def _index_comment(self, comment, comment_id):
         tokens = self.get_tokens(comment[3])  # 'text' is 4th item in comment
@@ -95,7 +100,6 @@ class SearchEngine(object):
         print("Wrote index part to disk.")
 
     def _merge(self):
-        print("Merging parts...")
         parts = os.listdir(self._index_part_dir)
         readers = {}
         part_files = []
@@ -152,14 +156,58 @@ class SearchEngine(object):
         self._postings_file = open(self._postings_filename, 'r', newline='')
         self._data_file = open(self._data_filename, 'r', newline='')
 
+    def search(self, query):
+        print("Searching: ", query)
+        begin = time.time()
+
+        is_phrase_query = query.startswith("'") and query.endswith("'")
+        tokens = self.get_tokens(query)
+
+        # find all postings:
+        all_postings = []
+        for pos, word in tokens:
+            all_postings.append(set([comment_id for comment_id, pos in self.get_postings(word)]))
+
+        # combine postings according to operator:
+        if " NOT " in query:
+            if len(all_postings) != 2:
+                print("Invalid query")
+                return []
+            relevant_doc_ids = all_postings[0] - all_postings[1]
+        elif " OR " in query:
+            relevant_doc_ids = set.union(*all_postings)
+        else:  # AND
+            relevant_doc_ids = set.intersection(*all_postings)
+
+        duration = time.time() - begin
+        print("Found %d results in %.2fms." % (len(relevant_doc_ids), duration * 1000))
+        begin = time.time()
+
+        # materialize results:
+        results = []
+        for doc_id in relevant_doc_ids:
+            comment = self.get_comment(doc_id)
+            results.append(comment)
+
+        if is_phrase_query:
+            simple_query = query.replace("'", "").lower()
+            for comment in results.copy():
+                if simple_query not in comment[3].lower():
+                    results.remove(comment)
+
+        duration = time.time() - begin
+        print("Materialized %d results in %.2fms." % (len(results), duration * 1000))
+
+        return results
+
     def get_postings(self, word):
-        prefix = word.endswith("*")
+        is_prefix = word.endswith("*")
         word = word.replace("*", "")
 
         i = bisect_left(self._seek_list, word)
         postings = []
-        if prefix:
-            if not i:
+        if is_prefix:
+            if not i or i == len(self._seek_list):
                 print("Word is not in seek list:", word)
                 return []
 
@@ -184,42 +232,6 @@ class SearchEngine(object):
             postings = json.loads(line)
         return postings
 
-    def search(self, query):
-        print("Searching: ", query)
-        begin = time.time()
-
-        phrase_query = query.startswith("'") and query.endswith("'")
-
-        tokens = self.get_tokens(query)
-
-        all_postings = []
-        for pos, word in tokens:
-            all_postings.append(set([comment_id for comment_id, pos in self.get_postings(word)]))
-
-        if " NOT " in query:
-            if len(all_postings) != 2:
-                print("Invalid query")
-                return []
-            relevant_doc_ids = all_postings[0] - all_postings[1]
-        elif " OR " in query:
-            relevant_doc_ids = set.union(*all_postings)
-        else:  # AND
-            relevant_doc_ids = set.intersection(*all_postings)
-
-        results = []
-        for doc_id in relevant_doc_ids:
-            comment = self.get_comment(doc_id)
-            results.append(comment)
-
-        if phrase_query:
-            for comment in results.copy():
-                if query.replace("'", "").lower() not in comment[3].lower():
-                    results.remove(comment)
-
-        duration = time.time() - begin
-        print("Found %d results in %.2fms." % (len(results), duration * 1000))
-        return results
-
     def get_comment(self, comment_id):
         # comment_id is byte offset in the data file
         self._data_file.seek(comment_id)
@@ -229,24 +241,24 @@ class SearchEngine(object):
 
     def print_assignment2_query_results(self):
         # print first 5 results for every query:
-        print("\n".join([c[3] for c in self.search("October")[:5]]) + "\n")
-        print("\n".join([c[3] for c in self.search("jobs")[:5]]) + "\n")
-        print("\n".join([c[3] for c in self.search("Trump")[:5]]) + "\n")
-        print("\n".join([c[3] for c in self.search("hate")[:5]]) + "\n")
-        print("\n".join([c[3] for c in self.search("party AND chancellor")[:1]]) + "\n")
-        print("\n".join([c[3] for c in self.search("party NOT politics")[:1]]) + "\n")
-        print("\n".join([c[3] for c in self.search("war OR conflict")[:1]]) + "\n")
-        print("\n".join([c[3] for c in self.search("euro* NOT europe")[:1]]) + "\n")
-        print("\n".join([c[3] for c in self.search("publi* NOT moderation")[:1]]) + "\n")
-        print("\n".join([c[3] for c in self.search("'the european union'")[:1]]) + "\n")
-        print("\n".join([c[3] for c in self.search("'christmas market'")[:1]]) + "\n")
+        self.print_results("October", 5)
+        self.print_results("jobs", 5)
+        self.print_results("Trump", 5)
+        self.print_results("hate", 5)
+        self.print_results("party AND chancellor", 1)
+        self.print_results("party NOT politics", 1)
+        self.print_results("war OR conflict", 1)
+        self.print_results("euro* NOT europe", 1)
+        self.print_results("publi* NOT moderation", 1)
+        self.print_results("'the european union'", 1)
+        self.print_results("'christmas market'", 1)
+
+    def print_results(self, query, count):
+        print("\n".join([c[3] for c in self.search(query)[:count]]) + "\n")
 
 
 if __name__ == '__main__':
     searchEngine = SearchEngine('data/comments_2017.csv')
-
-    searchEngine.index()
-
+    searchEngine.create_index()
     searchEngine.load_index()
-
     searchEngine.print_assignment2_query_results()
