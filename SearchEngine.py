@@ -10,6 +10,8 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 
+csv.field_size_limit(2147483647)
+
 
 class SearchEngine(object):
 
@@ -42,13 +44,13 @@ class SearchEngine(object):
         begin = time.time()
         self._index_data()
         duration = time.time() - begin
-        print("Indexing completed (%.2fs)" % duration)
+        print("Indexing completed (%.2fs)\n" % duration)
 
         print("Merging parts...")
         begin = time.time()
         self._merge()
         duration = time.time() - begin
-        print("Merging parts completed (%.2fs)" % duration)
+        print("Merging parts completed (%.2fs)\n" % duration)
 
     def _index_data(self):
         with open(self._data_filename, 'r', newline='') as csvfile:
@@ -67,7 +69,10 @@ class SearchEngine(object):
                 comment_count += 1
                 if not comment_count % 10000:
                     print("%d comments processed" % comment_count)
+                if not comment_count % 50000:
                     self._write_index_part_to_disk()
+
+            self._write_index_part_to_disk()
 
     def _index_comment(self, comment, comment_id):
         tokens = self.get_tokens(comment[3])  # 'text' is 4th item in comment
@@ -189,14 +194,17 @@ class SearchEngine(object):
             comment = self.get_comment(doc_id)
             results.append(comment)
 
+        duration = time.time() - begin
+        print("Materialized %d results in %.2fms." % (len(relevant_doc_ids), duration * 1000))
+        begin = time.time()
+
         if is_phrase_query:
             simple_query = query.replace("'", "").lower()
             for comment in results.copy():
                 if simple_query not in comment[3].lower():
                     results.remove(comment)
-
-        duration = time.time() - begin
-        print("Materialized %d results in %.2fms." % (len(results), duration * 1000))
+            duration = time.time() - begin
+            print("Phrase query matched %d results in %.2fms." % (len(results), duration * 1000))
 
         return results
 
@@ -258,7 +266,7 @@ class SearchEngine(object):
 
 
 if __name__ == '__main__':
-    searchEngine = SearchEngine('data/comments_2017.csv')
+    searchEngine = SearchEngine('data/comments.csv')
     searchEngine.create_index()
     searchEngine.load_index()
     searchEngine.print_assignment2_query_results()
