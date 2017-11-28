@@ -54,8 +54,6 @@ class SearchEngine(object):
 
     def _index_data(self):
         with open(self._data_filename, 'r', newline='') as csvfile:
-            # skip header:
-            csvfile.readline()
             # initial position:
             pos = csvfile.tell()
             comment_count = 0
@@ -92,6 +90,7 @@ class SearchEngine(object):
         return stemmed_words
 
     def _write_index_part_to_disk(self):
+        if not self._postings: return
         part_num = len(os.listdir(self._index_part_dir))
         filename = (self._index_part_dir + '/part%d') % part_num
 
@@ -266,7 +265,7 @@ class SearchEngine(object):
 
 
 if __name__ == '__main__':
-    searchEngine = SearchEngine('data/comments.csv')
+    searchEngine = SearchEngine('data/comments_new.csv')
     searchEngine.create_index()
     searchEngine.load_index()
     searchEngine.print_assignment2_query_results()

@@ -3,6 +3,7 @@ import json
 import time
 import csv
 import os
+import codecs
 import xml.etree.ElementTree as ET
 
 import requests
@@ -144,11 +145,75 @@ def crawl_and_save_year(year):
     print("Saved comments as '%s'." % filename)
 
 
+def convert_to_new_scheme():
+    data_filename = 'data/comments.csv'
+    decoder = codecs.getdecoder("unicode_escape")
+
+    rt_id_to_new_id = {'': ''}
+    article_url_to_new_id = {}
+    article_id_url = []
+    last_article = None
+    author_to_new_id = {}
+    author_id_url = []
+    comments = []
+    new_id = 0
+
+    with open(data_filename, 'r', newline='') as csvfile:
+
+        for line in iter(csvfile.readline, ''):
+            comment = next(csv.reader([line]))
+            # 0 rt_id, 1 url, 2 author, 3 text, 4 timestamp, 5 parent_rt_id, 6 up_votes, 7 down_votes
+            rt_id = comment[0]
+            if rt_id.startswith("b'"):
+                rt_id = rt_id[2:-1]
+            rt_id_to_new_id[rt_id] = new_id
+
+            article_url = comment[1]
+            if article_url.startswith("b'"):
+                article_url = article_url[2:-1]
+            if article_url != last_article:
+                article_url_to_new_id[article_url] = new_id
+                article_id_url.append((new_id, article_url))
+                last_article = article_url
+
+            author = comment[2]
+            if author.startswith("b'"):
+                author = decoder(author[2:-1])[0]
+            if author not in author_to_new_id:
+                author_to_new_id[author] = new_id
+                author_id_url.append((new_id, author))
+
+            text = comment[3]
+            if text.startswith("b'") or text.startswith('b"'):
+                text = decoder(text[2:-1])[0]
+
+            comments.append((new_id, article_url_to_new_id[article_url], author_to_new_id[author], text,
+                             comment[4], rt_id_to_new_id.get(comment[5], ''), comment[6], comment[7]))
+
+            new_id += 1
+            if not new_id % 10000:
+                print("%d comments processed" % new_id)
+
+    with open('data/article_urls.csv', 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerows(article_id_url)
+
+    with open('data/authors.csv', 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerows(author_id_url)
+
+    with open('data/comments_new.csv', 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerows(comments)
+
+
 def run():
     if not os.path.exists('data'):
         os.makedirs('data')
 
     crawl_and_save_year(2017)
+
+    #convert_to_new_scheme()
 
     # Some Statistics:
     # avg. 302 bytes per comment
