@@ -91,7 +91,37 @@ assume that there is no relevance information and that k1=1.2, k2=100 and b=0.75
 ranking of the four documents for the queries
 \subsection{click }
 
+\begin{table}[]
+\centering
+\caption{My caption}
+\label{my-label}
+\begin{tabular}{|l|c|c|l|l|l|l|}
+\hline
+     & \multicolumn{6}{c|}{Query: Click}                                                           \\ \hline
+     &  & BM25                     & \multicolumn{2}{l|}{Likelihood} & \multicolumn{2}{l|}{tf-idf} \\ \hline
+Doc1 &  & $1,497* Log(N/n) = 0.187$  & \multicolumn{2}{l|}{0,692}      & \multicolumn{2}{l|}{0.374}  \\ \hline
+Doc2 &  & $1,541* Log(N/n) = 0.192$  & \multicolumn{2}{l|}{0,892}      & \multicolumn{2}{l|}{0.249}  \\ \hline
+Doc3 &  & 0                        & \multicolumn{2}{l|}{0}          & \multicolumn{2}{l|}{0}      \\ \hline
+Doc4 &  & $0,819 *Log(N/n) = 0.102$ & \multicolumn{2}{l|}{0.252}      & \multicolumn{2}{l|}{0.124}  \\ \hline
+\end{tabular}
+\end{table}
+
 \subsection{test}
+
+\begin{table}[]
+\centering
+\caption{My caption}
+\label{my-label}
+\begin{tabular}{|l|c|c|l|l|l|l|}
+\hline
+     & \multicolumn{6}{c|}{Query: test}                                                            \\ \hline
+     &  & BM25                     & \multicolumn{2}{l|}{Likelihood} & \multicolumn{2}{l|}{tf-idf} \\ \hline
+Doc1 &  & $0,913* Log(N/n) = 0.274$  & \multicolumn{2}{l|}{0.230}      & \multicolumn{2}{l|}{0.301}  \\ \hline
+Doc2 &  & 0                        & \multicolumn{2}{l|}{0}          & \multicolumn{2}{l|}{0}      \\ \hline
+Doc3 &  & 0                        & \multicolumn{2}{l|}{0}          & \multicolumn{2}{l|}{0}      \\ \hline
+Doc4 &  & $0,819 * Log(N/n) = 0.246$ & \multicolumn{2}{l|}{0.190}      & \multicolumn{2}{l|}{0.301}  \\ \hline
+\end{tabular}
+\end{table}
 
 
 \section{(Programming)  Different Models for Ranked Retrieval
