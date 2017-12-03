@@ -5,6 +5,7 @@ import os
 import time
 import shutil
 from bisect import bisect_left
+from math import log
 
 import nltk
 from nltk.corpus import stopwords
@@ -27,6 +28,8 @@ class SearchEngine(object):
 
         self._postings_file = None
         self._data_file = None
+        self._comment_count = 0
+        self._avg_comment_length = 0
 
         self._stopwords = set(stopwords.words("english"))
         self._stemmer = PorterStemmer()
@@ -71,6 +74,8 @@ class SearchEngine(object):
                     self._write_index_part_to_disk()
 
             self._write_index_part_to_disk()
+        # TODO: write comment_count to disk
+        # TODO: save avg comment length
 
     def _index_comment(self, comment, comment_id):
         tokens = self.get_tokens(comment[3])  # 'text' is 4th item in comment
@@ -159,6 +164,8 @@ class SearchEngine(object):
 
         self._postings_file = open(self._postings_filename, 'r', newline='')
         self._data_file = open(self._data_filename, 'r', newline='')
+        self._comment_count = 680000  # TODO: replace with real value from disk
+        self._avg_comment_length = 10  # TODO: replace with real value from disk
 
     def search(self, query):
         print("Searching: ", query)
@@ -239,6 +246,54 @@ class SearchEngine(object):
             postings = json.loads(line)
         return postings
 
+    def search_BM25(self, query, top_x):
+        tokens = self.get_tokens(query)
+        query_results = {}
+        avg_comment_length = self._avg_comment_length
+
+        for pos, word in tokens:
+            qf = len([w for pos, w in tokens if w == word])
+            postings = self.get_postings(word)
+            comment_ids = set([comment_id for comment_id, pos in postings])
+            num_docs_containing_word = len(comment_ids)
+            for comment_id, pos in postings:
+                raw_tf_in_comment = len([cid for cid, pos in postings if cid == comment_id])  # TODO: read tf from extra index file
+                comment_length = 10  # TODO: read comment length from extra index file
+                score = self._bm25_rank(num_docs_containing_word, raw_tf_in_comment, qf, comment_length, avg_comment_length)
+                if comment_id in query_results:
+                    query_results[comment_id] += score
+                else:
+                    query_results[comment_id] = score
+
+        # materialize results:
+        results = []
+        for comment_id, score in sorted(query_results.items(), key=lambda x: x[1], reverse=True)[:top_x]:
+            comment = self.get_comment(comment_id)
+            results.append(comment)
+
+        return results
+
+
+    def _bm25_rank(self, n, f, qf, ld, l_avg):
+        # n = docs containing term
+        # f = count of term in doc
+        # qf = count of term in query
+        # ld = length of doc
+        # l_avg = avg length of docs
+
+        k1 = 1.2
+        k3 = 100
+        b = 0.75
+        r = 0
+        R = 0.0
+        N = self._comment_count
+        K = k1 * ((1 - b) + b * (float(ld) / float(l_avg)))
+
+        first = log(((r + 0.5) / (R - r + 0.5)) / ((n - r + 0.5) / (N - n - R + r + 0.5)))
+        second = ((k1 + 1) * f) / (K + f)
+        third = ((k3 + 1) * qf) / (k3 + qf)
+        return first * second * third
+
     def get_comment(self, comment_id):
         # comment_id is byte offset in the data file
         self._data_file.seek(comment_id)
@@ -259,6 +314,8 @@ class SearchEngine(object):
         self.print_results("publi* NOT moderation", 1)
         self.print_results("'the european union'", 1)
         self.print_results("'christmas market'", 1)
+
+        print("\n".join([c[3] for c in self.search_BM25("angela merkel", 5)]) + "\n")
 
     def print_results(self, query, count):
         print("\n".join([c[3] for c in self.search(query)[:count]]) + "\n")
