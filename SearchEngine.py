@@ -359,18 +359,22 @@ class SearchEngine(object):
 
     def print_assignment2_query_results(self):
         # print first 5 results for every query:
-        self.print_results("October", 5)
-        self.print_results("jobs", 5)
-        self.print_results("Trump", 5)
-        self.print_results("hate", 5)
-        self.print_results("party AND chancellor", 1)
-        self.print_results("party NOT politics", 1)
-        self.print_results("war OR conflict", 1)
-        self.print_results("euro* NOT europe", 1)
-        self.print_results("publi* NOT moderation", 1)
-        self.print_results("'the european union'", 1)
-        self.print_results("'christmas market'", 1)
-        self.print_results("angela merkel", 5)
+        # self.print_results("October", 5)
+        # self.print_results("jobs", 5)
+        # self.print_results("Trump", 5)
+        # self.print_results("hate", 5)
+        # self.print_results("party AND chancellor", 1)
+        # self.print_results("party NOT politics", 1)
+        # self.print_results("war OR conflict", 1)
+        # self.print_results("euro* NOT europe", 1)
+        # self.print_results("publi* NOT moderation", 1)
+        # self.print_results("'the european union'", 1)
+        # self.print_results("'christmas market'", 1)
+        # Assignment 4:
+        self.print_results("christmas market", 5)
+        self.print_results("catalonia independence", 5)
+        self.print_results("'european union'", 5)
+        self.print_results("negotiate", 5)
 
     def print_results(self, query, top_k):
         print("\n".join(["%.1f - %s" % (c[8], c[3]) for c in self.search(query, top_k)]) + "\n")

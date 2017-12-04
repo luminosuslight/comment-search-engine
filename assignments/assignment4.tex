@@ -124,7 +124,42 @@ Doc4 &  & $0,819 * Log(N/n) = 0.246$ & \multicolumn{2}{l|}{0.190}      & \multic
 \section{(Programming)  Different Models for Ranked Retrieval
 }
 
-\textit{Will be added till Tuesday.}
+We are using the BM25 model to rank the results.
 
+\begin{lstlisting}
+
+Searching using BM25:  christmas market
+Found 3930 results in 27.28ms.
+15.5 - who just wanted to visit Christmas market which is their traditions since ages.
+15.5 - notice how attacks are never on Government buildings? just christmas markets.
+15.5 - This app makes a great Christmas gift.\n\nIt will be marketed under the brand name Pok-e-alterboy.
+13.9 - The immigrants are a tool to fuel Gernan industry, the German elite don't do Christmas markets, so they don't care!
+13.9 - The last few years I did the Christmas markets in Germany and Switzerland, this year I am going to Russia...
+
+Searching using BM25:  catalonia independence
+Found 3254 results in 14.11ms.
+18.3 - Catalonia will be independent, whether you want it or not.
+17.6 - This is a pre Catalonia Independence warning from Madrid
+16.9 - We should all stand behind Soros and his support for the independence of Catalonia!
+16.9 - Independence?? That is not going to end well for Catalonia I think...
+16.5 - the "independent" country of Catalonia full of Spanish flags... mmm... what a strange "independent" country :-)
+
+Searching using BM25:  'european union'
+Found 2481 results in 10.37ms.
+9.0 - Well, yugoslavian union was kind of a european union, and we know what happened. The new union, EU, is on the same path.
+8.9 - There already is a new soviet union under the name of European Union.
+8.6 - European Union.
+8.4 - The European Union? Each has a say.....No Divide..Good for All..This is NOT A UNION..\nBeen in the UNION my entire life...Do not disgrace it..\n Union is the collective rights of all individuals for better wages and better life of the members.
+8.4 - Should the United Kingdom remain a member of the European Union or leave the European Union?\n\nThat's still biased in favour of staying in. It should read:-\n\nShould the United Kingdom leave the European Union or remain a member of the European Union?
+
+Searching using BM25:  negotiate
+Found 950 results in 4.31ms.
+10.9 - How do negotiations work when you're calling for surrender? What is there to negotiate?
+10.7 - Britain's top Brexit negotiator that can't negotiate
+10.1 - Too many negotiations.
+10.1 - No negotiation with terrorists !
+10.1 - Opps"" Negotiation.
+
+\end{lstlisting}
 
 \end{document}
