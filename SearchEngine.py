@@ -21,10 +21,14 @@ class SearchEngine(object):
         self._seek_filename = 'seek.dat'
         self._postings_filename = 'postings.dat'
         self._index_part_dir = 'index_parts'
+        self._stats_filename = 'stats.dat'
+        self._comment_lengths_filename = 'lengths.dat'
 
         self._postings = {}
         self._seek_list = None
         self._seek_positions = None
+        self._total_comment_length = 0
+        self._comment_lengths = {}
 
         self._postings_file = None
         self._data_file = None
@@ -56,6 +60,7 @@ class SearchEngine(object):
         print("Merging parts completed (%.2fs)\n" % duration)
 
     def _index_data(self):
+        self._total_comment_length = 0
         with open(self._data_filename, 'r', newline='') as csvfile:
             # initial position:
             pos = csvfile.tell()
@@ -74,11 +79,21 @@ class SearchEngine(object):
                     self._write_index_part_to_disk()
 
             self._write_index_part_to_disk()
-        # TODO: write comment_count to disk
-        # TODO: save avg comment length
+
+        avg_comment_length = self._total_comment_length / comment_count
+        print("Comment count:", comment_count)
+        print("Average comment length:", avg_comment_length)
+
+        with open(self._stats_filename, 'wb') as stats_file:
+            stats_file.write(pickle.dumps({"doc_count": comment_count, "avg_doc_length": avg_comment_length}))
+
+        with open(self._comment_lengths_filename, 'wb') as lengths_file:
+            lengths_file.write(pickle.dumps(self._comment_lengths))
 
     def _index_comment(self, comment, comment_id):
         tokens = self.get_tokens(comment[3])  # 'text' is 4th item in comment
+        self._total_comment_length += len(tokens)
+        self._comment_lengths[comment_id] = len(tokens)
 
         # append these occurrences of the tokens to the posting lists:
         for pos, word in tokens:
@@ -162,13 +177,25 @@ class SearchEngine(object):
         with open(self._seek_filename, 'rb') as seek_file:
             self._seek_list, self._seek_positions = pickle.load(seek_file)
 
+        with open(self._stats_filename, 'rb') as stats_file:
+            stats = pickle.load(stats_file)
+            self._comment_count = stats["doc_count"]
+            self._avg_comment_length = stats["avg_doc_length"]
+
+        with open(self._comment_lengths_filename, 'rb') as lengths_file:
+            self._comment_lengths = pickle.load(lengths_file)
+
         self._postings_file = open(self._postings_filename, 'r', newline='')
         self._data_file = open(self._data_filename, 'r', newline='')
-        self._comment_count = 680000  # TODO: replace with real value from disk
-        self._avg_comment_length = 10  # TODO: replace with real value from disk
 
-    def search(self, query):
-        print("Searching: ", query)
+    def search(self, query, top_k):
+        if any(word in query for word in (" AND ", " OR ", " NOT ")):
+            return self._search_binary(query, top_k)
+        else:
+            return self._search_BM25(query, top_k)
+
+    def _search_binary(self, query, top_k):
+        print("Searching using binary model: ", query)
         begin = time.time()
 
         is_phrase_query = query.startswith("'") and query.endswith("'")
@@ -177,7 +204,7 @@ class SearchEngine(object):
         # find all postings:
         all_postings = []
         for pos, word in tokens:
-            all_postings.append(set([comment_id for comment_id, pos in self.get_postings(word)]))
+            all_postings.append(set([comment_id for comment_id, pos in self._get_postings(word)]))
 
         # combine postings according to operator:
         if " NOT " in query:
@@ -198,10 +225,13 @@ class SearchEngine(object):
         results = []
         for doc_id in relevant_doc_ids:
             comment = self.get_comment(doc_id)
+            comment.append(1.0)  # score
             results.append(comment)
+            if len(results) >= top_k:
+                break
 
         duration = time.time() - begin
-        print("Materialized %d results in %.2fms." % (len(relevant_doc_ids), duration * 1000))
+        print("Materialized %d results in %.2fms." % (top_k, duration * 1000))
         begin = time.time()
 
         if is_phrase_query:
@@ -214,7 +244,61 @@ class SearchEngine(object):
 
         return results
 
-    def get_postings(self, word):
+    def _search_BM25(self, query, top_k):
+        print("Searching using BM25: ", query)
+        begin = time.time()
+
+        is_phrase_query = query.startswith("'") and query.endswith("'")
+        tokens = self.get_tokens(query)
+        query_results = {}
+        avg_doc_length = self._avg_comment_length
+
+        for pos, word in tokens:
+            qf = len([w for pos, w in tokens if w == word])
+            postings = self._get_postings(word)
+            postings_count = len(postings)
+            comment_ids = set([comment_id for comment_id, pos in postings])
+            num_docs_containing_word = len(comment_ids)
+            i = 0
+            while i < postings_count:
+                comment_id, pos = postings[i]
+                term_count_in_doc = 0
+                while i < postings_count and postings[i][0] == comment_id:
+                    term_count_in_doc += 1
+                    i += 1
+                doc_length = self._comment_lengths[comment_id]
+                score = self._bm25_score(num_docs_containing_word, term_count_in_doc, qf, doc_length, avg_doc_length)
+                if comment_id in query_results:
+                    query_results[comment_id] += score
+                else:
+                    query_results[comment_id] = score
+
+        duration = time.time() - begin
+        print("Found %d results in %.2fms." % (len(query_results), duration * 1000))
+        begin = time.time()
+
+        # materialize results:
+        results = []
+        simple_query = query.replace("'", "").lower()
+        materialize_count = 0
+        for comment_id, score in sorted(query_results.items(), key=lambda x: x[1], reverse=True):
+            comment = self.get_comment(comment_id)
+            materialize_count += 1
+            if is_phrase_query and simple_query not in comment[3].lower():
+                continue
+            comment.append(score)
+            results.append(comment)
+            if len(results) >= top_k:
+                break
+
+        duration = time.time() - begin
+        print("Materialized %d results to find top %d in %.2fms." % (materialize_count, top_k, duration * 1000))
+        if not results:
+            print("No result found.")
+
+        return results
+
+    def _get_postings(self, word):
         is_prefix = word.endswith("*")
         word = word.replace("*", "")
 
@@ -246,35 +330,7 @@ class SearchEngine(object):
             postings = json.loads(line)
         return postings
 
-    def search_BM25(self, query, top_x):
-        tokens = self.get_tokens(query)
-        query_results = {}
-        avg_comment_length = self._avg_comment_length
-
-        for pos, word in tokens:
-            qf = len([w for pos, w in tokens if w == word])
-            postings = self.get_postings(word)
-            comment_ids = set([comment_id for comment_id, pos in postings])
-            num_docs_containing_word = len(comment_ids)
-            for comment_id, pos in postings:
-                raw_tf_in_comment = len([cid for cid, pos in postings if cid == comment_id])  # TODO: read tf from extra index file
-                comment_length = 10  # TODO: read comment length from extra index file
-                score = self._bm25_rank(num_docs_containing_word, raw_tf_in_comment, qf, comment_length, avg_comment_length)
-                if comment_id in query_results:
-                    query_results[comment_id] += score
-                else:
-                    query_results[comment_id] = score
-
-        # materialize results:
-        results = []
-        for comment_id, score in sorted(query_results.items(), key=lambda x: x[1], reverse=True)[:top_x]:
-            comment = self.get_comment(comment_id)
-            results.append(comment)
-
-        return results
-
-
-    def _bm25_rank(self, n, f, qf, ld, l_avg):
+    def _bm25_score(self, n, f, qf, ld, l_avg):
         # n = docs containing term
         # f = count of term in doc
         # qf = count of term in query
@@ -282,16 +338,16 @@ class SearchEngine(object):
         # l_avg = avg length of docs
 
         k1 = 1.2
-        k3 = 100
+        k3 = 100.0
         b = 0.75
-        r = 0
+        r = 0.0
         R = 0.0
         N = self._comment_count
         K = k1 * ((1 - b) + b * (float(ld) / float(l_avg)))
 
         first = log(((r + 0.5) / (R - r + 0.5)) / ((n - r + 0.5) / (N - n - R + r + 0.5)))
-        second = ((k1 + 1) * f) / (K + f)
-        third = ((k3 + 1) * qf) / (k3 + qf)
+        second = ((k1 + 1.0) * f) / (K + f)
+        third = ((k3 + 1.0) * qf) / (k3 + qf)
         return first * second * third
 
     def get_comment(self, comment_id):
@@ -314,11 +370,10 @@ class SearchEngine(object):
         self.print_results("publi* NOT moderation", 1)
         self.print_results("'the european union'", 1)
         self.print_results("'christmas market'", 1)
+        self.print_results("angela merkel", 5)
 
-        print("\n".join([c[3] for c in self.search_BM25("angela merkel", 5)]) + "\n")
-
-    def print_results(self, query, count):
-        print("\n".join([c[3] for c in self.search(query)[:count]]) + "\n")
+    def print_results(self, query, top_k):
+        print("\n".join(["%.1f - %s" % (c[8], c[3]) for c in self.search(query, top_k)]) + "\n")
 
 
 if __name__ == '__main__':
