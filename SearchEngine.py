@@ -165,6 +165,7 @@ class SearchEngine(object):
             postings_file.write(json.dumps(complete_posting, separators=(',', ':')) + '\n')
 
         # write seek list to disk:
+        seek_list = self._compress_seek_list(seek_list)
         with open(self._seek_filename, 'wb') as seek_file:
             seek_file.write(pickle.dumps((seek_list, seek_positions)))
 
@@ -173,9 +174,33 @@ class SearchEngine(object):
         for part_file in part_files:
             part_file.close()
 
+    def _compress_seek_list(self, seek_list):
+        compressed = []
+        last_word = ""
+        for word in seek_list:
+            prefix_length = 0
+            for i in range(min(9, len(word), len(last_word))):
+                if word[i] != last_word[i]:
+                    break
+                prefix_length = i + 1
+            compressed.append(str(prefix_length) + word[prefix_length:])
+            last_word = word
+        return compressed
+
+    def _uncompress_seek_list(self, compressed):
+        seek_list = []
+        last_word = ""
+        for word in compressed:
+            prefix_length = int(word[0])
+            real_word = last_word[:prefix_length] + word[1:]
+            seek_list.append(real_word)
+            last_word = real_word
+        return seek_list
+
     def load_index(self):
         with open(self._seek_filename, 'rb') as seek_file:
             self._seek_list, self._seek_positions = pickle.load(seek_file)
+            self._seek_list = self._uncompress_seek_list(self._seek_list)
 
         with open(self._stats_filename, 'rb') as stats_file:
             stats = pickle.load(stats_file)
