@@ -98,13 +98,13 @@ class SearchEngine(object):
                     print("%d comments processed" % comment_count)
                 if not comment_count % 50000:
                     self._write_index_part_to_disk()
-                    break
 
             self._write_index_part_to_disk()
 
         avg_comment_length = self._total_comment_length / comment_count
         print("Comment count:", comment_count)
         print("Average comment length:", avg_comment_length)
+        print("Total token count:", self._total_comment_length)
 
         with open(self._stats_filename, 'wb') as stats_file:
             stats_file.write(pickle.dumps({"doc_count": comment_count, "avg_doc_length": avg_comment_length}))
@@ -197,11 +197,9 @@ class SearchEngine(object):
             part_file.close()
 
     def _postings_to_string(self, postings):
-        # postings = [ (id, pos), (id, pos) ]
         s = ""
         for cid, pos in postings:
             s += int_to_base64(cid) + ":" + int_to_base64(pos) + ";"
-        print(s)
         return s
 
     def _postings_from_string(self, s):
