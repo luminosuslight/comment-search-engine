@@ -26,11 +26,11 @@ def int_from_bytes(xbytes):
 def int_to_base64(x):
     b = int_to_bytes(x)
     s = base64.b64encode(b).decode()
-    return s
+    return s.rstrip('=')
 
 
 def int_from_base64(s):
-    b = base64.b64decode(s)
+    b = base64.b64decode(s + '==')
     x = int_from_bytes(b)
     return x
 
@@ -184,7 +184,7 @@ class SearchEngine(object):
             seek_list.append(word)
             seek_positions.append(postings_file.tell())
             # write posting list to postings file:
-            postings_file.write(json.dumps(complete_posting, separators=(',', ':')) + '\n')
+            postings_file.write(self._postings_to_string(complete_posting) + '\n')
 
         # write seek list to disk:
         seek_list = self._compress_seek_list(seek_list)
@@ -195,6 +195,23 @@ class SearchEngine(object):
         postings_file.close()
         for part_file in part_files:
             part_file.close()
+
+    def _postings_to_string(self, postings):
+        # postings = [ (id, pos), (id, pos) ]
+        s = ""
+        for cid, pos in postings:
+            s += int_to_base64(cid) + ":" + int_to_base64(pos) + ";"
+        print(s)
+        return s
+
+    def _postings_from_string(self, s):
+        postings = []
+        for post in s.rstrip(";").split(";"):
+            cid, pos = post.split(":")
+            cid = int_from_base64(cid)
+            pos = int_from_base64(pos)
+            postings.append((cid, pos))
+        return postings
 
     def _compress_seek_list(self, seek_list):
         compressed = []
@@ -217,6 +234,7 @@ class SearchEngine(object):
             real_word = last_word[:prefix_length] + word[1:]
             seek_list.append(real_word)
             last_word = real_word
+        print("Unique tokens in index:", len(seek_list), '\n')
         return seek_list
 
     def _compress_seek_positions(self, seek_positions):
@@ -412,7 +430,7 @@ class SearchEngine(object):
             pos = self._seek_positions[i]
             self._postings_file.seek(pos)
             line = self._postings_file.readline()
-            postings = json.loads(line)
+            postings = self._postings_from_string(line[:-1])
         return postings
 
     def _bm25_score(self, n, f, qf, ld, l_avg):
