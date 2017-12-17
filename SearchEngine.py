@@ -4,6 +4,7 @@ import pickle
 import os
 import time
 import shutil
+import base64
 from bisect import bisect_left
 from math import log
 
@@ -12,6 +13,26 @@ from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 
 csv.field_size_limit(2147483647)
+
+
+def int_to_bytes(x):
+    return x.to_bytes((x.bit_length() + 7) // 8, 'big')
+
+
+def int_from_bytes(xbytes):
+    return int.from_bytes(xbytes, 'big')
+
+
+def int_to_base64(x):
+    b = int_to_bytes(x)
+    s = base64.b64encode(b).decode()
+    return s
+
+
+def int_from_base64(s):
+    b = base64.b64decode(s)
+    x = int_from_bytes(b)
+    return x
 
 
 class SearchEngine(object):
@@ -77,6 +98,7 @@ class SearchEngine(object):
                     print("%d comments processed" % comment_count)
                 if not comment_count % 50000:
                     self._write_index_part_to_disk()
+                    break
 
             self._write_index_part_to_disk()
 
@@ -166,8 +188,8 @@ class SearchEngine(object):
 
         # write seek list to disk:
         seek_list = self._compress_seek_list(seek_list)
-        with open(self._seek_filename, 'wb') as seek_file:
-            seek_file.write(pickle.dumps((seek_list, seek_positions)))
+        seek_positions = self._compress_seek_positions(seek_positions)
+        self._write_seek_file(seek_list, seek_positions)
 
         # close files:
         postings_file.close()
@@ -197,10 +219,48 @@ class SearchEngine(object):
             last_word = real_word
         return seek_list
 
+    def _compress_seek_positions(self, seek_positions):
+        compressed = []
+        last_pos = 0
+        for pos in seek_positions:
+            compressed.append(pos - last_pos)
+            last_pos = pos
+        return compressed
+
+    def _uncompress_seek_positions(self, compressed):
+        seek_positions = []
+        last_pos = 0
+        for delta in compressed:
+            pos = last_pos + delta
+            seek_positions.append(pos)
+            last_pos = pos
+        return seek_positions
+
+    def _write_seek_file(self, tokens, positions):
+        if not len(tokens) == len(positions):
+            print("Seek tokens and positions have different size. Aborting.")
+            exit(-1)
+        with open(self._seek_filename, 'w') as seek_file:
+            for i in range(len(tokens)):
+                seek_file.write(tokens[i] + "\n")
+                seek_file.write(int_to_base64(positions[i]) + "\n")
+
+    def _read_seek_file(self):
+        tokens = []
+        positions = []
+        with open(self._seek_filename, 'r') as seek_file:
+            while True:
+                token = seek_file.readline()
+                if not token:
+                    break
+                tokens.append(token[:-1])
+                positions.append(int_from_base64(seek_file.readline()[:-1]))
+        return tokens, positions
+
     def load_index(self):
-        with open(self._seek_filename, 'rb') as seek_file:
-            self._seek_list, self._seek_positions = pickle.load(seek_file)
-            self._seek_list = self._uncompress_seek_list(self._seek_list)
+        compressed_seek_list, compressed_seek_positions = self._read_seek_file()
+        self._seek_list = self._uncompress_seek_list(compressed_seek_list)
+        self._seek_positions = self._uncompress_seek_positions(compressed_seek_positions)
 
         with open(self._stats_filename, 'rb') as stats_file:
             stats = pickle.load(stats_file)
