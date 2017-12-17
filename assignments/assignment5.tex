@@ -72,12 +72,6 @@ Precision at 7: P = $ 4 \div 7 = 0,571$
 
 Recall at: R = $ 4 \div 40 = 0,1$
 
-\subsection{What is ’independent’ in the binary independence model (BIM) and is this a reasonable
-assumption? Explain. }
-
-"Independence" denotes to the independent representation of each term in the document vector and each of them has no modeled relationship with the other ones (no position or terms similarity are taken into consideration). In a sense, this assumption is equivalent to the orthogonality assumption in the vector space model. In this context, the independence assumption is exaggerated and absolute which could mislead the result, as in real life (in our information retrieval framework) it is almost impossible to find a document, in which all its value have no relationship with the other. (either by their position or in the document context) A term classification (topic, synonym, similarity...) could be a more reasonable way to proceed with this formula and thus elaborating class-independence could lead to a safer result.
-
-
 \subsection{MAP}
 
 \begin{table}[h]
@@ -114,45 +108,27 @@ N-DCG          & 1 & 0.5 & 0.619 & 6.8  & 0.598 & 0.54 & 0.578 & 0.578 & 0.65 & 
 
 
 
-\section{(Programming) Index compression
-}
+\section{(Programming) Index compression}
 
-We are using the BM25 model to rank the results.
+\subsection{Report the sizes of the compressed and uncompressed index files in your implementation.}
 
-\begin{lstlisting}
+\begin{table}[h]
+	\centering
+	\caption{Index Sizes (bytes)}
+	\begin{tabular}{l|r|r|r|r}
+		Part           & uncompressed & compressed   & compression rate & bytes / element  \\ \hline
+		Seek List      &    2,449,689 & 857,665   & 64.9\%   &  7.71   \\
+		Postings       &  124,015,956 & 86,309,936   & 30.4\%  &  9.67   \\
+	\end{tabular}
+\end{table}
 
-Searching using BM25:  christmas market
-Found 3930 results in 27.28ms.
-15.5 - who just wanted to visit Christmas market which is their traditions since ages.
-15.5 - notice how attacks are never on Government buildings? just christmas markets.
-15.5 - This app makes a great Christmas gift.\n\nIt will be marketed under the brand name Pok-e-alterboy.
-13.9 - The immigrants are a tool to fuel Gernan industry, the German elite don't do Christmas markets, so they don't care!
-13.9 - The last few years I did the Christmas markets in Germany and Switzerland, this year I am going to Russia...
+\subsection{Write down which kind of compression techniques you are using.}
 
-Searching using BM25:  catalonia independence
-Found 3254 results in 14.11ms.
-18.3 - Catalonia will be independent, whether you want it or not.
-17.6 - This is a pre Catalonia Independence warning from Madrid
-16.9 - We should all stand behind Soros and his support for the independence of Catalonia!
-16.9 - Independence?? That is not going to end well for Catalonia I think...
-16.5 - the "independent" country of Catalonia full of Spanish flags... mmm... what a strange "independent" country :-)
+To compress the seek list, we are using delta compression for both the token strings and the byte offsets of their postings lists. To implement the string delta compression, the first byte of each token is the number of characters that are equal to the token before, followed by the characters that changed. This way, a token where only the last character changed ('negotiate' -> 'negotiated') consumes only two bytes (instead of 10 in this example).
 
-Searching using BM25:  'european union'
-Found 2481 results in 10.37ms.
-9.0 - Well, yugoslavian union was kind of a european union, and we know what happened. The new union, EU, is on the same path.
-8.9 - There already is a new soviet union under the name of European Union.
-8.6 - European Union.
-8.4 - The European Union? Each has a say.....No Divide..Good for All..This is NOT A UNION..\nBeen in the UNION my entire life...Do not disgrace it..\n Union is the collective rights of all individuals for better wages and better life of the members.
-8.4 - Should the United Kingdom remain a member of the European Union or leave the European Union?\n\nThat's still biased in favour of staying in. It should read:-\n\nShould the United Kingdom leave the European Union or remain a member of the European Union?
+In addition, we removed all unnecessary overhead in the seek file, while still only using ASCII chars. In the end, this means that we need only 7.7 bytes per token on average (\textasciitilde4 bytes for the token and \textasciitilde3 bytes for the byte offset).
 
-Searching using BM25:  negotiate
-Found 950 results in 4.31ms.
-10.9 - How do negotiations work when you're calling for surrender? What is there to negotiate?
-10.7 - Britain's top Brexit negotiator that can't negotiate
-10.1 - Too many negotiations.
-10.1 - No negotiation with terrorists !
-10.1 - Opps"" Negotiation.
+The posting lists are compressed by storing the comment IDs and word positions with base 64 instead of base 10, represented by ASCII characters. This means we do not need two bytes to store the number '10' anymore, but only one. Furthermore we removed some overhead from the file structure. One pair of comment ID (which is a 64bit memory offset) and the word position in the comment takes 9.6 bytes on average, with only ASCII characters used.
 
-\end{lstlisting}
 
 \end{document}
