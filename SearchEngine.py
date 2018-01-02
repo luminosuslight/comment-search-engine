@@ -10,9 +10,10 @@ from bisect import bisect_left
 from math import log
 from multiprocessing import Pool
 
-import nltk
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
+
+from gensim.utils import tokenize
 
 csv.field_size_limit(2147483647)
 
@@ -51,7 +52,7 @@ pos_as_base64 = [int_to_base64(i) for i in range(400)]
 
 
 def get_tokens(text):
-    tokens = nltk.word_tokenize(text.lower())
+    tokens = tokenize(text, lowercase=True)
 
     # add position numbers, remove punctuation and stem words:
     stemmed_words = [(pos, stemmer_fn(word)) for (pos, word) in enumerate(tokens) if
@@ -135,6 +136,7 @@ class SearchEngine(object):
 
                     if not comment_count % 100000:
                         self._write_index_part_to_disk()
+                        break
 
             except KeyboardInterrupt:
                 print("Indexing interrupted, continuing with merging...")
