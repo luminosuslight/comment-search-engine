@@ -4,7 +4,8 @@ import pickle
 import os
 import time
 import shutil
-import base64
+from base64 import b64encode, b64decode
+import cProfile
 from bisect import bisect_left
 from math import log
 from multiprocessing import Pool
@@ -16,6 +17,13 @@ from nltk.stem.porter import PorterStemmer
 csv.field_size_limit(2147483647)
 
 
+def print_profile(func):
+    def inner(*args, **kwargs):
+        fn = func
+        return cProfile.runctx("fn(*args, **kwargs)", globals(), locals())
+    return inner
+
+
 def int_to_bytes(x):
     return x.to_bytes((x.bit_length() + 7) // 8, 'big')
 
@@ -25,13 +33,12 @@ def int_from_bytes(xbytes):
 
 
 def int_to_base64(x):
-    b = int_to_bytes(x)
-    s = base64.b64encode(b).decode()
-    return s.rstrip('=')
+    # this functions is a performance bottleneck -> all in one line
+    return b64encode(x.to_bytes((x.bit_length() + 7) // 8, 'big')).decode().rstrip('=')
 
 
 def int_from_base64(s):
-    b = base64.b64decode(s + '==')
+    b = b64decode(s + '==')
     x = int_from_bytes(b)
     return x
 
@@ -40,9 +47,11 @@ stopwords = set(stopwords.words("english"))
 stemmer_fn = PorterStemmer().stem
 
 
+pos_as_base64 = [int_to_base64(i) for i in range(400)]
+
+
 def get_tokens(text):
-    tokens = nltk.word_tokenize(text)
-    tokens = [word.lower() for word in tokens]
+    tokens = nltk.word_tokenize(text.lower())
 
     # add position numbers, remove punctuation and stem words:
     stemmed_words = [(pos, stemmer_fn(word)) for (pos, word) in enumerate(tokens) if
@@ -122,10 +131,11 @@ class SearchEngine(object):
                         for comment_id, comment, tokens in comment_chunk:
                             self._index_comment(comment_id, comment, tokens)
                         comment_chunk = []
-
                         print("%d comments processed" % comment_count)
+
                     if not comment_count % 100000:
                         self._write_index_part_to_disk()
+
             except KeyboardInterrupt:
                 print("Indexing interrupted, continuing with merging...")
 
@@ -180,6 +190,7 @@ class SearchEngine(object):
         postings_file = open(self._postings_filename, 'w', newline='')
         seek_list = []
         seek_positions = []
+        json_loads = json.loads
 
         # This is a K-Way merging algorithm:
         # In each step we look at the next word in each part file.
@@ -188,15 +199,15 @@ class SearchEngine(object):
         # and set their cursor to the next value for the next round.
         # At last we write the merged list to the final postings file.
         while True:
-            words = [item[0] for item in readers.values()]
-            word = sorted(words)[0]
+            words = (item[0] for item in readers.values())
+            word = min(words)
             if not word:
                 break
 
             complete_posting = []
             for reader, item in readers.items():
                 if item[0] == word:
-                    complete_posting = complete_posting + (json.loads(item[1]))
+                    complete_posting += json_loads(item[1])
                     readers[reader] = next(reader, ["", None])
 
             # store index of posting in postings file:
@@ -216,10 +227,11 @@ class SearchEngine(object):
             part_file.close()
 
     def _postings_to_string(self, postings):
-        s = ""
+        # this function is a performance bottleneck -> use append instead of +
+        s = []
         for cid, pos in postings:
-            s += int_to_base64(cid) + ":" + int_to_base64(pos) + ";"
-        return s
+            s += (int_to_base64(cid), ":", (pos_as_base64[pos] if pos < len(pos_as_base64) else int_to_base64(pos)), ";")
+        return ''.join(s)
 
     def _postings_from_string(self, s):
         postings = []
@@ -497,7 +509,7 @@ class SearchEngine(object):
         self.print_results("negotiate", 5)
 
     def print_results(self, query, top_k):
-        print("\n".join(["%.1f - %s" % (c[8], c[3]) for c in self.search(query, top_k)]) + "\n")
+        print("\n".join(["%.1f - %s" % (c[-1], c[3]) for c in self.search(query, top_k)]) + "\n")
 
 
 if __name__ == '__main__':
