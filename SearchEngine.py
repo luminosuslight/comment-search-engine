@@ -7,6 +7,7 @@ import shutil
 import base64
 from bisect import bisect_left
 from math import log
+from multiprocessing import Pool
 
 import nltk
 from nltk.corpus import stopwords
@@ -35,6 +36,26 @@ def int_from_base64(s):
     return x
 
 
+stopwords = set(stopwords.words("english"))
+stemmer_fn = PorterStemmer().stem
+
+
+def get_tokens(text):
+    tokens = nltk.word_tokenize(text)
+    tokens = [word.lower() for word in tokens]
+
+    # add position numbers, remove punctuation and stem words:
+    stemmed_words = [(pos, stemmer_fn(word)) for (pos, word) in enumerate(tokens) if
+                     word not in stopwords and word.isalpha() or word.endswith("*")]
+    return stemmed_words
+
+
+def process_comment(c):
+    comment_id, comment = c
+    # 'text' is 4th item in comment
+    return comment_id, comment, get_tokens(comment[3])
+
+
 class SearchEngine(object):
 
     def __init__(self, data_filename):
@@ -55,9 +76,6 @@ class SearchEngine(object):
         self._data_file = None
         self._comment_count = 0
         self._avg_comment_length = 0
-
-        self._stopwords = set(stopwords.words("english"))
-        self._stemmer = PorterStemmer()
 
         if os.path.exists(self._index_part_dir):
             shutil.rmtree(self._index_part_dir)
@@ -88,19 +106,28 @@ class SearchEngine(object):
             # initial position:
             pos = csvfile.tell()
             comment_count = 0
+            comment_chunk = []
+            process_pool = Pool()
 
-            for line in iter(csvfile.readline, ''):
-                comment_id = pos
-                comment = next(csv.reader([line]))
-                self._index_comment(comment, comment_id)
-                pos = csvfile.tell()
+            try:
+                for line in iter(csvfile.readline, ''):
+                    comment_id = pos
+                    comment = next(csv.reader([line]))
+                    comment_chunk.append((comment_id, comment))
+                    pos = csvfile.tell()
+                    comment_count += 1
 
-                comment_count += 1
-                if not comment_count % 10000:
-                    print("%d comments processed" % comment_count)
-                if not comment_count % 50000:
-                    self._write_index_part_to_disk()
-                    break
+                    if len(comment_chunk) >= 25000:
+                        comment_chunk = process_pool.map(process_comment, comment_chunk)
+                        for comment_id, comment, tokens in comment_chunk:
+                            self._index_comment(comment_id, comment, tokens)
+                        comment_chunk = []
+
+                        print("%d comments processed" % comment_count)
+                    if not comment_count % 100000:
+                        self._write_index_part_to_disk()
+            except KeyboardInterrupt:
+                print("Indexing interrupted, continuing with merging...")
 
             self._write_index_part_to_disk()
 
@@ -115,25 +142,13 @@ class SearchEngine(object):
         with open(self._comment_lengths_filename, 'wb') as lengths_file:
             lengths_file.write(pickle.dumps(self._comment_lengths))
 
-    def _index_comment(self, comment, comment_id):
-        tokens = self.get_tokens(comment[3])  # 'text' is 4th item in comment
+    def _index_comment(self, comment_id, comment, tokens):
         self._total_comment_length += len(tokens)
         self._comment_lengths[comment_id] = len(tokens)
 
         # append these occurrences of the tokens to the posting lists:
         for pos, word in tokens:
             self._postings.setdefault(word, []).append((comment_id, pos))
-
-    def get_tokens(self, text):
-        tokens = nltk.word_tokenize(text)
-        tokens = [word.lower() for word in tokens]
-
-        # add position numbers, remove punctuation and stem words:
-        stops = self._stopwords  # faster than multiple accesses to instance variable
-        stem = self._stemmer.stem  # faster than multiple accesses to instance variable
-        stemmed_words = [(pos, stem(word)) for (pos, word) in enumerate(tokens) if
-                         word not in stops and word.isalpha() or word.endswith("*")]
-        return stemmed_words
 
     def _write_index_part_to_disk(self):
         if not self._postings: return
@@ -304,7 +319,7 @@ class SearchEngine(object):
         begin = time.time()
 
         is_phrase_query = query.startswith("'") and query.endswith("'")
-        tokens = self.get_tokens(query)
+        tokens = get_tokens(query)
 
         # find all postings:
         all_postings = []
@@ -354,7 +369,7 @@ class SearchEngine(object):
         begin = time.time()
 
         is_phrase_query = query.startswith("'") and query.endswith("'")
-        tokens = self.get_tokens(query)
+        tokens = get_tokens(query)
         query_results = {}
         avg_doc_length = self._avg_comment_length
 
