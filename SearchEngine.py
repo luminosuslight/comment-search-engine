@@ -39,11 +39,11 @@ class SearchEngine(object):
 
     def __init__(self, data_filename):
         self._data_filename = data_filename
-        self._seek_filename = 'seek.dat'
-        self._postings_filename = 'postings.dat'
+        self._seek_filename = 'index/seek.dat'
+        self._postings_filename = 'index/postings.dat'
         self._index_part_dir = 'index_parts'
-        self._stats_filename = 'stats.dat'
-        self._comment_lengths_filename = 'lengths.dat'
+        self._stats_filename = 'index/stats.dat'
+        self._comment_lengths_filename = 'index/lengths.dat'
 
         self._postings = {}
         self._seek_list = None
@@ -62,6 +62,8 @@ class SearchEngine(object):
         if os.path.exists(self._index_part_dir):
             shutil.rmtree(self._index_part_dir)
         os.makedirs(self._index_part_dir)
+        if not os.path.exists('index'):
+            os.makedirs('index')
 
     def create_index(self):
         if os.path.exists(self._postings_filename):

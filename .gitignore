@@ -381,3 +381,6 @@ TSWLatexianTemp*
 comments*.csv
 postings.dat
 seek.dat
+index/
+index_parts/
+data/
