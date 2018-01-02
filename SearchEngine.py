@@ -11,9 +11,9 @@ from math import log
 from multiprocessing import Pool
 
 from nltk.corpus import stopwords
-from nltk.stem.porter import PorterStemmer
 
 from gensim.utils import tokenize
+from gensim.parsing.porter import PorterStemmer
 
 csv.field_size_limit(2147483647)
 
@@ -45,7 +45,7 @@ def int_from_base64(s):
 
 
 stopwords = set(stopwords.words("english"))
-stemmer_fn = PorterStemmer().stem
+stemmer_fn = PorterStemmer().stem_sentence
 
 
 pos_as_base64 = [int_to_base64(i) for i in range(400)]
@@ -136,7 +136,6 @@ class SearchEngine(object):
 
                     if not comment_count % 100000:
                         self._write_index_part_to_disk()
-                        break
 
             except KeyboardInterrupt:
                 print("Indexing interrupted, continuing with merging...")
