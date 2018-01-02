@@ -7,6 +7,8 @@ import shutil
 import base64
 from bisect import bisect_left
 from math import log
+from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
 
 import nltk
 from nltk.corpus import stopwords
@@ -39,11 +41,11 @@ class SearchEngine(object):
 
     def __init__(self, data_filename):
         self._data_filename = data_filename
-        self._seek_filename = 'seek.dat'
-        self._postings_filename = 'postings.dat'
+        self._seek_filename = 'index/seek.dat'
+        self._postings_filename = 'index/postings.dat'
         self._index_part_dir = 'index_parts'
-        self._stats_filename = 'stats.dat'
-        self._comment_lengths_filename = 'lengths.dat'
+        self._stats_filename = 'index/stats.dat'
+        self._comment_lengths_filename = 'index/lengths.dat'
 
         self._postings = {}
         self._seek_list = None
@@ -62,6 +64,9 @@ class SearchEngine(object):
         if os.path.exists(self._index_part_dir):
             shutil.rmtree(self._index_part_dir)
         os.makedirs(self._index_part_dir)
+
+        if not os.path.exists('index'):
+            os.makedirs('index')
 
     def create_index(self):
         if os.path.exists(self._postings_filename):
@@ -86,19 +91,27 @@ class SearchEngine(object):
             # initial position:
             pos = csvfile.tell()
             comment_count = 0
+            comment_chunk = []
+            futures = []
 
-            for line in iter(csvfile.readline, ''):
-                comment_id = pos
-                comment = next(csv.reader([line]))
-                self._index_comment(comment, comment_id)
-                pos = csvfile.tell()
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                for line in iter(csvfile.readline, ''):
+                    comment_id = pos
+                    comment = next(csv.reader([line]))
+                    comment_chunk.append((comment, comment_id))
+                    #self._index_comment(comment, comment_id)
+                    pos = csvfile.tell()
 
-                comment_count += 1
-                if not comment_count % 10000:
-                    print("%d comments processed" % comment_count)
-                if not comment_count % 50000:
-                    self._write_index_part_to_disk()
-                    break
+                    comment_count += 1
+                    if not comment_count % 10000:
+                        futures.append(executor.submit(self._process_chunk, comment_chunk))
+                        comment_chunk = []
+                        print("%d comments processed" % comment_count)
+                    if not comment_count % 50000:
+                        concurrent.futures.wait(futures)
+                        self._write_index_part_to_disk()
+                        futures = []
+                        break
 
             self._write_index_part_to_disk()
 
@@ -112,6 +125,10 @@ class SearchEngine(object):
 
         with open(self._comment_lengths_filename, 'wb') as lengths_file:
             lengths_file.write(pickle.dumps(self._comment_lengths))
+
+    def _process_chunk(self, chunk):
+        for comment, comment_id in chunk:
+            self._index_comment(comment, comment_id)
 
     def _index_comment(self, comment, comment_id):
         tokens = self.get_tokens(comment[3])  # 'text' is 4th item in comment
