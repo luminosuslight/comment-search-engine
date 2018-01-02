@@ -39,11 +39,11 @@ class SearchEngine(object):
 
     def __init__(self, data_filename):
         self._data_filename = data_filename
-        self._seek_filename = 'seek.dat'
-        self._postings_filename = 'postings.dat'
+        self._seek_filename = 'index/seek.dat'
+        self._postings_filename = 'index/postings.dat'
         self._index_part_dir = 'index_parts'
-        self._stats_filename = 'stats.dat'
-        self._comment_lengths_filename = 'lengths.dat'
+        self._stats_filename = 'index/stats.dat'
+        self._comment_lengths_filename = 'index/lengths.dat'
 
         self._postings = {}
         self._seek_list = None
@@ -62,6 +62,8 @@ class SearchEngine(object):
         if os.path.exists(self._index_part_dir):
             shutil.rmtree(self._index_part_dir)
         os.makedirs(self._index_part_dir)
+        if not os.path.exists('index'):
+            os.makedirs('index')
 
     def create_index(self):
         if os.path.exists(self._postings_filename):
@@ -123,7 +125,7 @@ class SearchEngine(object):
             self._postings.setdefault(word, []).append((comment_id, pos))
 
     def get_tokens(self, text):
-        tokens = nltk.word_tokenize(text)
+        tokens = nltk.word_tokenize(text) #[w.strip('.,') for w in text.split(' ')]
         tokens = [word.lower() for word in tokens]
 
         # add position numbers, remove punctuation and stem words:
@@ -481,10 +483,3 @@ class SearchEngine(object):
 
     def print_results(self, query, top_k):
         print("\n".join(["%.1f - %s" % (c[8], c[3]) for c in self.search(query, top_k)]) + "\n")
-
-
-if __name__ == '__main__':
-    searchEngine = SearchEngine('data/comments_new.csv')
-    searchEngine.create_index()
-    searchEngine.load_index()
-    searchEngine.print_assignment2_query_results()
