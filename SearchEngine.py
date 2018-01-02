@@ -98,6 +98,7 @@ class SearchEngine(object):
                     print("%d comments processed" % comment_count)
                 if not comment_count % 50000:
                     self._write_index_part_to_disk()
+                    break
 
             self._write_index_part_to_disk()
 
@@ -127,7 +128,8 @@ class SearchEngine(object):
 
         # add position numbers, remove punctuation and stem words:
         stops = self._stopwords  # faster than multiple accesses to instance variable
-        stemmed_words = [(pos, self._stemmer.stem(word)) for (pos, word) in enumerate(tokens) if
+        stem = self._stemmer.stem  # faster than multiple accesses to instance variable
+        stemmed_words = [(pos, stem(word)) for (pos, word) in enumerate(tokens) if
                          word not in stops and word.isalpha() or word.endswith("*")]
         return stemmed_words
 
