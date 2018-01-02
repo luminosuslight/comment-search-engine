@@ -45,7 +45,7 @@ def int_from_base64(s):
 
 
 stopwords = set(stopwords.words("english"))
-stemmer_fn = PorterStemmer().stem_sentence
+stemmer_fn = PorterStemmer().stem
 
 
 pos_as_base64 = [int_to_base64(i) for i in range(400)]
