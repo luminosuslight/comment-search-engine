@@ -6,6 +6,8 @@ import time
 import shutil
 from base64 import b64encode, b64decode
 import cProfile
+import pstats
+import sys
 from bisect import bisect_left
 from math import log
 from multiprocessing import Pool
@@ -20,8 +22,16 @@ csv.field_size_limit(2147483647)
 
 def print_profile(func):
     def inner(*args, **kwargs):
-        fn = func
-        return cProfile.runctx("fn(*args, **kwargs)", globals(), locals())
+        pr = cProfile.Profile()
+        pr.enable()
+
+        my_return_val = func(*args, **kwargs)
+
+        pr.disable()
+        ps = pstats.Stats(pr, stream=sys.stdout)
+        ps.sort_stats('cumulative')
+        ps.print_stats()
+        return my_return_val
     return inner
 
 
@@ -321,6 +331,7 @@ class SearchEngine(object):
         self._postings_file = open(self._postings_filename, 'r', newline='')
         self._data_file = open(self._data_filename, 'r', newline='')
 
+    @print_profile
     def search(self, query, top_k):
         if any(word in query for word in (" AND ", " OR ", " NOT ")):
             return self._search_binary(query, top_k)
@@ -496,7 +507,7 @@ class SearchEngine(object):
         # self.print_results("jobs", 5)
         # self.print_results("Trump", 5)
         # self.print_results("hate", 5)
-        # self.print_results("party AND chancellor", 1)
+        self.print_results("party AND chancellor", 5)
         # self.print_results("party NOT politics", 1)
         # self.print_results("war OR conflict", 1)
         # self.print_results("euro* NOT europe", 1)
@@ -504,8 +515,8 @@ class SearchEngine(object):
         # self.print_results("'the european union'", 1)
         # self.print_results("'christmas market'", 1)
         # Assignment 4:
-        self.print_results("christmas market", 5)
-        self.print_results("catalonia independence", 5)
+        # self.print_results("christmas market", 5)
+        # self.print_results("catalonia independence", 5)
         self.print_results("'european union'", 5)
         self.print_results("negotiate", 5)
 
