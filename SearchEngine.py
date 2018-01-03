@@ -523,7 +523,9 @@ class SearchEngine(object):
         print("Time to train:", time.time() - begin)
         self.doc2vec_model = model
 
-    def doc2vec_test(self, query_tokens):
+    def doc2vec_test(self, query):
+        query_tokens = gensim.utils.simple_preprocess(query)
+        print(query_tokens)
         inferred_vector = self.doc2vec_model.infer_vector(query_tokens)
         begin = time.time()
         sims = self.doc2vec_model.docvecs.most_similar([inferred_vector], topn=len(self.doc2vec_model.docvecs))
@@ -555,6 +557,7 @@ class SearchEngine(object):
         self.print_results("catalonia independence", 5)
         self.print_results("'european union'", 5)
         self.print_results("negotiate", 5)
+        self.print_results("usa AND economy", 5)
 
     def print_results(self, query, top_k):
         print("\n".join(["%.1f - %s" % (c[-1], c[3]) for c in self.search(query, top_k)]) + "\n")
@@ -567,6 +570,4 @@ if __name__ == '__main__':
     searchEngine.print_assignment2_query_results()
 
     searchEngine.doc2vec_init()
-    searchEngine.doc2vec_test(['europe', 'is', 'great'])
-    searchEngine.doc2vec_test(['russia'])
-    searchEngine.doc2vec_test(['russia', 'is', 'the', 'best'])
+    searchEngine.doc2vec_test("Pretty much all western production is in China. Russia doesn't produce anything except raw oil & gas. Well, it does, but it doesn't have any impact on the global market. Russia is still accepting US $ for oil and gas while China just loves to kiss US bottom. If they really want to shake US hegemony, than they should stop acting like US vassals. The end of petrodollar will not cause economic collapse of the USA, unless someone makes an larger impact on their economy.")
