@@ -12,6 +12,7 @@ from multiprocessing import Pool
 
 from nltk.corpus import stopwords
 
+import gensim
 from gensim.utils import tokenize
 from gensim.parsing.porter import PorterStemmer
 
@@ -86,6 +87,8 @@ class SearchEngine(object):
         self._data_file = None
         self._comment_count = 0
         self._avg_comment_length = 0
+
+        self.doc2vec_model = None
 
         if os.path.exists(self._index_part_dir):
             shutil.rmtree(self._index_part_dir)
@@ -490,6 +493,50 @@ class SearchEngine(object):
         comment = next(csv.reader([line]))
         return comment
 
+    def read_comments(self):
+        with open(self._data_filename, 'r', newline='') as csvfile:
+            pos = csvfile.tell()
+            comment_count = 0
+
+            for line in iter(csvfile.readline, ''):
+                comment_id = pos
+                comment = next(csv.reader([line]))
+                yield gensim.models.doc2vec.TaggedDocument(gensim.utils.simple_preprocess(comment[3]), [comment_id])
+                pos = csvfile.tell()
+                comment_count += 1
+
+                if not comment_count % 5000:
+                    print("%d comments processed" % comment_count)
+                if not comment_count % 50000:
+                    break
+
+    def doc2vec_init(self):
+        begin = time.time()
+        train_corpus = list(self.read_comments())
+        print("Time to build train_corpus:", time.time() - begin)
+        model = gensim.models.doc2vec.Doc2Vec(size=50, min_count=2, iter=55)  # TODO: set iter to 55
+        begin = time.time()
+        model.build_vocab(train_corpus)
+        print("Time to build_vocab:", time.time() - begin)
+        begin = time.time()
+        model.train(train_corpus, total_examples=model.corpus_count, epochs=model.iter)
+        print("Time to train:", time.time() - begin)
+        self.doc2vec_model = model
+
+    def doc2vec_test(self, query_tokens):
+        inferred_vector = self.doc2vec_model.infer_vector(query_tokens)
+        begin = time.time()
+        sims = self.doc2vec_model.docvecs.most_similar([inferred_vector], topn=len(self.doc2vec_model.docvecs))
+        print("Time to get most_similar:", time.time() - begin)
+
+        # Compare and print the most/median/least similar documents from the train corpus
+        print('Query: «{}»\n'.format(' '.join(query_tokens)))
+        print(u'SIMILAR/DISSIMILAR DOCS PER MODEL %s:\n' % self.doc2vec_model)
+        for label, index in [('MOST', 0), ('MEDIAN', len(sims) // 2), ('LEAST', len(sims) - 1)]:
+            print(u'%s %s: «%s»' % (label, sims[index], self.get_comment(sims[index][0])[3]))
+        for index in range(min(len(sims), 10)):
+            print(u'%s: «%s»' % (sims[index], self.get_comment(sims[index][0])[3]))
+
     def print_assignment2_query_results(self):
         # print first 5 results for every query:
         # self.print_results("October", 5)
@@ -518,3 +565,8 @@ if __name__ == '__main__':
     searchEngine.create_index()
     searchEngine.load_index()
     searchEngine.print_assignment2_query_results()
+
+    searchEngine.doc2vec_init()
+    searchEngine.doc2vec_test(['europe', 'is', 'great'])
+    searchEngine.doc2vec_test(['russia'])
+    searchEngine.doc2vec_test(['russia', 'is', 'the', 'best'])

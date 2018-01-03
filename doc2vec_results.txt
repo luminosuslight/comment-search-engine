@@ -1,0 +1,58 @@
+50000 comments processed
+Time to build train_corpus: 4.740304231643677
+Time to build_vocab: 160.6131157875061
+Time to train: 210.07941818237305
+Time to get most_similar: 30.455754280090332
+Query: «europe is great»
+
+SIMILAR/DISSIMILAR DOCS PER MODEL Doc2Vec(dm/m,d50,n5,w5,mc2,s0.001,t3):
+
+MOST (9917248, 0.8504171967506409): «terrible tragedy»
+MEDIAN (6580336, 0.0009051752276718616): «0»
+LEAST (2465721, -0.6830850839614868): « because of personal knowledge on such particulars (eg»
+(9917248, 0.8504171967506409): «terrible tragedy»
+(7842830, 0.8370261192321777): «Another Washington puppet.»
+(9032965, 0.8310629725456238): «good question»
+(4910609, 0.8305296301841736): «Smells fishy.»
+(561577, 0.8304429054260254): «Je suis Charlie»
+(8944980, 0.8296656012535095): «Argentina belongs to the Falkland Islands.»
+(4897739, 0.8295953869819641): «Blue snow»
+(301516, 0.8288173675537109): «Je suis Charlie :(»
+(5579300, 0.8281198740005493): «Good advice.»
+(9274868, 0.828062891960144): «Stay strong Russia»
+Time to get most_similar: 27.03770089149475
+Query: «russia»
+
+SIMILAR/DISSIMILAR DOCS PER MODEL Doc2Vec(dm/m,d50,n5,w5,mc2,s0.001,t3):
+
+MOST (238081, 0.8296943306922913): «Vive la France! Je suis Charlie!»
+MEDIAN (2062632, 0.0009392853826284409): «0»
+LEAST (9667153, -0.636389970779419): «0»
+(238081, 0.8296943306922913): «Vive la France! Je suis Charlie!»
+(6196958, 0.8216211199760437): «Russia has envied NASA since 1969»
+(329990, 0.8181439638137817): «Why does nobody want to invest in Russia?»
+(5881079, 0.812351405620575): «The west will blame russia for this.»
+(2653356, 0.812015950679779): «In 2025 China buys America for 1$.»
+(4515790, 0.8066954016685486): «je suis digusted»
+(7666164, 0.8065333962440491): «Russia can't afford drills»
+(2310379, 0.8063388466835022): «What about Russia?»
+(4168599, 0.805616021156311): «well done Russia»
+(6721953, 0.804765522480011): «great news for russia»
+Time to get most_similar: 25.588193893432617
+Query: «russia is the best»
+
+SIMILAR/DISSIMILAR DOCS PER MODEL Doc2Vec(dm/m,d50,n5,w5,mc2,s0.001,t3):
+
+MOST (9032965, 0.805978536605835): «good question»
+MEDIAN (2396362, 0.0008057970553636551): «0»
+LEAST (8226715, -0.646821141242981): «»
+(9032965, 0.805978536605835): «good question»
+(844297, 0.8030021786689758): «Barry soetoro.»
+(8745354, 0.7998104691505432): «Postiveness is a good step forward...»
+(893437, 0.7941799759864807): «You reap what you sow.»
+(268871, 0.7931815981864929): «shrooms best!!!!!!!!!!!!»
+(364480, 0.7929500937461853): «whats wrong with his face?»
+(5579300, 0.7928610444068909): «Good advice.»
+(10214260, 0.7919290065765381): «the sooner the better.»
+(8992396, 0.7909849286079407): «I appreciate some clarity.»
+(6787801, 0.7906128764152527): «Good BOY!» 
