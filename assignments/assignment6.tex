@@ -79,7 +79,35 @@ Yes, the 5 test runs provide enough evidence.
 
 \subsection{Calculate the optimal separating boundary with its parameters $\vec{w}$ and $b$.}
 
-TODO
+Witout loosing the generality we define the decision rule as:
+
+\textbf{if} $\vec{w}\cdot \vec{u} + b \geq 0$ \textbf{then} $\vec{u}$ is relevant.
+
+Let's define for a relevant document $\vec{x_i}$ $\Rightarrow$  $y_i = \vec{w}\cdot \vec{x_i} + b = +1$
+
+and for an unrelevant document  $\vec{x_j}$ $\Rightarrow$  $y_j = \vec{w}\cdot \vec{x_i} + b = -1$
+
+Our goal here is to define the optimal linear separating boundary that decide the relevance of a document  $\vec{x_i}$ noted by $\vec{w}\cdot \vec{x_i} + b = y_i$ 
+
+Therefore we aim to find the two parameters $\vec{w}$ and $b$ that define our separating boundary through our given samples $\vec{x_1}$, $\vec{x_2}$ and $\vec{x_4}$ .
+
+We define $\vec{w} = (w_1, w_2)$ and let's assume our SVM equation as : $w_1 . x+ w_2 . y + w_3 = 0$ such that $(x,y)$ are a coordinate of a defined document and $w_3$ is the constant of the SVM function.
+
+As $\vec{x_1}, \vec{x_2}$ two relevant documents and $ \vec{x_4}$ non relevant document such that:
+
+Document $\vec{x_1}$ : $w_1 . 1 + w_2 . 0 + w_3 = 1$
+
+Document $\vec{x_2}$ : $w_1 . 0 + w_2 . 1 + w_3 = 1$
+
+Document $\vec{x_4}$ : $w_1 . 0 + w_2 . 0 + w_3 = -1$
+
+From the third equation, we ensure that $w_3 = -1$
+
+Therefore, as $w_3$ is already known, $w_1 = 2$ and $w_2 = 2$ hold.
+
+Thereby our SVM optimal separating boundary decision function would be: $w_1 . x+ w_2 . y + w_3 = 2.x + 2.y - 1 = \textbf{x + y -$ \frac{1}{2}$ } = 0 $
+
+From that, we conclude that $\vec{w} = (1,1) $ and $b =  - \frac{1}{2}$, for $\vec{w} . \vec{u} +b  = 0$ 
 
 
 \section{(Programming) Document Embeddings and Optimization}
