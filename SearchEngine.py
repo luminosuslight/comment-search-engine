@@ -85,15 +85,20 @@ class SearchEngine(object):
         self._index_part_dir = 'index_parts'
         self._stats_filename = 'index/stats.dat'
         self._comment_lengths_filename = 'index/lengths.dat'
+        self._reply_to_filename = 'index/reply_to.dat'
+        self._reply_seek_filename = 'index/reply_seek.dat'
 
         self._postings = {}
         self._seek_list = None
         self._seek_positions = None
         self._total_comment_length = 0
         self._comment_lengths = {}
+        self._replies = {}
+        self._reply_seek = {}  # small enough to be in memory, ~113 MB for 55M comments
 
         self._postings_file = None
         self._data_file = None
+        self._reply_to_file = None
         self._comment_count = 0
         self._avg_comment_length = 0
 
@@ -162,6 +167,22 @@ class SearchEngine(object):
 
         with open(self._comment_lengths_filename, 'wb') as lengths_file:
             lengths_file.write(pickle.dumps(self._comment_lengths))
+            self._comment_lengths = []  # free memory
+
+        print("writing replies...")
+        reply_seek = {}
+        with open(self._reply_to_filename, 'w') as reply_to_file:
+            print("replies size:", self._replies.__sizeof__())
+            for cid, replies in sorted(self._replies.items()):
+                reply_seek[cid] = reply_to_file.tell()
+                compressed_replies = (int_to_base64(r) for r in replies)
+                reply_to_file.write(','.join(compressed_replies) + '\n')
+            for i in range(5):
+                print(reply_seek.get(i, ""))
+            print("reply seek size:", len(reply_seek), reply_seek.__sizeof__())
+
+        with open(self._reply_seek_filename, 'wb') as reply_seek_file:
+            reply_seek_file.write(pickle.dumps(reply_seek))
 
     def _index_comment(self, comment_id, comment, tokens):
         self._total_comment_length += len(tokens)
@@ -170,6 +191,10 @@ class SearchEngine(object):
         # append these occurrences of the tokens to the posting lists:
         for pos, word in tokens:
             self._postings.setdefault(word, []).append((comment_id, pos))
+
+        reply_to_field = 5
+        if comment[reply_to_field]:
+            self._replies.setdefault(int(comment[reply_to_field]), []).append(comment_id)
 
     def _write_index_part_to_disk(self):
         if not self._postings: return
@@ -328,10 +353,13 @@ class SearchEngine(object):
         with open(self._comment_lengths_filename, 'rb') as lengths_file:
             self._comment_lengths = pickle.load(lengths_file)
 
+        with open(self._reply_seek_filename, 'rb') as reply_seek_file:
+            self._reply_seek = pickle.load(reply_seek_file)
+
         self._postings_file = open(self._postings_filename, 'r', newline='')
         self._data_file = open(self._data_filename, 'r', newline='')
+        self._reply_to_file = open(self._reply_to_filename, 'r', newline='')
 
-    @print_profile
     def search(self, query, top_k):
         if any(word in query for word in (" AND ", " OR ", " NOT ")):
             return self._search_binary(query, top_k)
@@ -501,6 +529,15 @@ class SearchEngine(object):
         comment = next(csv.reader([line]))
         return comment
 
+    def _get_replies(self, cid):
+        pos = self._reply_seek.get(cid, None)
+        if pos is None:
+            return []
+        self._reply_to_file.seek(pos)
+        line = self._reply_to_file.readline()
+        replies = [int_from_base64(r) for r in line.split(',')]
+        return replies
+
     def print_assignment2_query_results(self):
         # print first 5 results for every query:
         # self.print_results("October", 5)
@@ -519,6 +556,11 @@ class SearchEngine(object):
         # self.print_results("catalonia independence", 5)
         self.print_results("'european union'", 5)
         self.print_results("negotiate", 5)
+        print(self._get_replies(41))
+        print(self._get_replies(137505))
+        print(self._get_replies(300744))
+        print(self._get_replies(50124))
+        print(self._get_replies(300748))
 
     def print_results(self, query, top_k):
         print("\n".join(["%.1f - %s" % (c[-1], c[3]) for c in self.search(query, top_k)]) + "\n")
