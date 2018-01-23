@@ -73,7 +73,7 @@ $d_{outdated} \geq 750 000 - 1 250 - 100$
 
 $d_{outdated} \geq 748 650$
 
-Since we want a \textbf{more} efficient rebuild running time, we have to delete \textbf{more} than 748 650 comments. $d_{outdated} > 748 650$
+Since we want a \textbf{more} efficient rebuild running time, we have to delete \textbf{more} than 748 650 comments. $d_{outdated} > 748 650$. $ \Rightarrow  748 651$ outdated comments to delete
   
 
 \section{PageRank}
@@ -117,10 +117,13 @@ To finish, we get $\textbf{ PR(A) = 1.019}$.
 \subsection { PageRank is initialized with identical scores for each web page. What would be a better
 method to initialize pageRank so that less iterations are necessary?}
 
-PageRank is an algorithm that calculate the score of a page in terms of the score (in pageRank) of pages that link to that page. Thus, several iteration have to be iterated in order to compute the pageRank of each document and that task may be expensive at that rate. 
+PageRank is an algorithm that calculate the score of a page in terms of the score (in pageRank) of pages that link to that page. Thus, several iteration have to be iterated in order to compute the pageRank of each document and that task may be expensive at that rate knowing that in practice the amount of pageRank to compute is extremly high. Therefore reductions could be done in order to increase the computing time and to improve the ranking quality.
 
-TODOO
+First reduction could be the removement of navigational links between pages. Most of pages nowaday include a navigational links such as menu that help the web surfer to navigate into the website. Those links could have an influence in the pageRank calculation and therefore increase strongly the pageRank variables into each others what deteriorates the efficency besides the fact that those links could manipulate the rank and decrease the ranking quality.
 
+An other reduction could be the removement of nepostic links. Several people tend to share links of their pages in publishments  out their pages  (Forum, comments...). Those comments could be represented as superfluous not only for the pageRanking computation time but also harm the ranking. Their reduction would be a big boost for the PR computation eventhough it is hard (and expensive) to detect those links.
+
+We could also reduce the kern of pages (documents) by considering that $pageRank(u)= pageRank(v)$, if $u$ and $v$ have the same in-comming edges and therefore they are similar. This reduction could save time in the pageRank computing by eliminating "duplicate" pageRank functions.
 
 \section{(Programming) Document Embeddings and Optimization}
 
