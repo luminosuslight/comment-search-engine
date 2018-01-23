@@ -361,7 +361,9 @@ class SearchEngine(object):
         self._reply_to_file = open(self._reply_to_filename, 'r', newline='')
 
     def search(self, query, top_k):
-        if any(word in query for word in (" AND ", " OR ", " NOT ")):
+        if query.startswith("ReplyTo:"):
+            self.print_replies(int(query[len("ReplyTo:"):]), top_k)
+        elif any(word in query for word in (" AND ", " OR ", " NOT ")):
             return self._search_binary(query, top_k)
         else:
             return self._search_BM25(query, top_k)
@@ -529,6 +531,48 @@ class SearchEngine(object):
         comment = next(csv.reader([line]))
         return comment
 
+    def get_comment_by_line_number(self, cid):
+        # Finds a comment in a csv file
+        # The id has to be the line number and the file has to be ordered
+        # Binary search would need up to log(file_size) seeks, while
+        # this approach needs only ~log(n)/4 seeks plus a sequential read
+        # of up to 50 lines which is much more disk friendly and therefore faster
+        self._data_file.seek(0, os.SEEK_END)
+        file_size = self._data_file.tell()
+        avg_comment_size = file_size / self._comment_count
+
+        estimated_position = cid * avg_comment_size
+        self._data_file.seek(estimated_position)
+        self._data_file.readline()  # discard partial line
+        line = self._data_file.readline()
+        comment = next(csv.reader([line]))
+        nr = int(comment[0])
+        diff = cid - nr
+        if diff == 0:
+            return comment
+
+        while diff < 0 or diff > 50:
+            estimated_position = max(0, min(estimated_position + (diff * avg_comment_size), file_size - 1))
+            self._data_file.seek(estimated_position)
+            self._data_file.readline()  # discard partial line
+            line = self._data_file.readline()
+            comment = next(csv.reader([line]))
+            nr = int(comment[0])
+            diff = cid - nr
+            if diff == 0:
+                return comment
+
+        for i in range(51):
+            line = self._data_file.readline()
+            comment = next(csv.reader([line]))
+            nr = int(comment[0])
+            diff = cid - nr
+            if diff == 0:
+                return comment
+
+        print("Could not find comment with id:", cid)
+        return None
+
     def _get_replies(self, cid):
         pos = self._reply_seek.get(cid, None)
         if pos is None:
@@ -537,6 +581,20 @@ class SearchEngine(object):
         line = self._reply_to_file.readline()
         replies = [int_from_base64(r) for r in line.split(',')]
         return replies
+
+    def print_replies(self, cid, top_k):
+        begin = time.time()
+        comment = self.get_comment_by_line_number(cid)
+        print("\nSearching for replies to the following comment:\n%s" % comment[3])
+        reply_ids = self._get_replies(cid)
+        duration = time.time() - begin
+        print("Found %d results in %.2fms." % (len(reply_ids), duration * 1000))
+        begin = time.time()
+        for rid in reply_ids[:top_k]:
+            reply = self.get_comment(rid)
+            print(" -> " + reply[3])
+        duration = time.time() - begin
+        print("Materialized %d results in %.2fms." % (min(len(reply_ids), top_k), duration * 1000))
 
     def print_assignment2_query_results(self):
         # print first 5 results for every query:
@@ -556,11 +614,10 @@ class SearchEngine(object):
         # self.print_results("catalonia independence", 5)
         self.print_results("'european union'", 5)
         self.print_results("negotiate", 5)
-        print(self._get_replies(41))
-        print(self._get_replies(137505))
-        print(self._get_replies(300744))
-        print(self._get_replies(50124))
-        print(self._get_replies(300748))
+        self.search("ReplyTo:300744", 5)
+        self.search("ReplyTo:300748", 5)
+        self.search("ReplyTo:26252", 5)
+        self.search("ReplyTo:157515", 5)
 
     def print_results(self, query, top_k):
         print("\n".join(["%.1f - %s" % (c[-1], c[3]) for c in self.search(query, top_k)]) + "\n")
