@@ -67,7 +67,7 @@ We know that daily, we delete at least $100$ undesired comments, let's suppose t
 
 $d_{outdated} + 100 \geq \frac{3}{4} d_{old}  - \frac{1}{4}  d_{insert} $
 
-We know that : $d_old = 1 000 000$ and the daily inserted comments $d_{insert} = 5000$, thereby:
+We know that : $d_{old} = 1 000 000$ and the daily inserted comments $d_{insert} = 5000$, thereby:
 
 $d_{outdated} \geq 750 000 - 1 250 - 100$
 
@@ -94,7 +94,7 @@ $
 
 We define the $pageRank$ of a page $u$ $PR(u)$ as follow:
 
-$PR(u) = (1- p) + p.( \frac{PR(T_0)}{C(T_0)} + \frac{PR(T_1)}{C(T_1)}+ ... + \frac{PR(T_n)}{C(T_n)})$, where $p$ is the probability ratio, $C(T_i)$ is the count of the outgoing edge from a page $T_i$ and $T = \{T_0 , T_1 , .... , T_n\}$ is the set of pages that link to the page $u$.
+$PR(u) = (1- p) + p.( \frac{PR(T_0)}{C(T_0)} + \frac{PR(T_1)}{C(T_1)}+ ... + \frac{PR(T_n)}{C(T_n)})$, where $p$ is the probability ratio, $C(T_i)$ is the count of the outgoing edges from a page $T_i$ and $T = \{T_0 , T_1 , .... , T_n\}$ is the set of pages that link to the page $u$.
 
 In our case, all pages have only one outgoing edge, so $\forall u $ in our network $C(u) = 1$. To calculate the rankPage of our network, following equations hold:
 
@@ -117,40 +117,54 @@ To finish, we get $\textbf{ PR(A) = 1.019}$.
 \subsection { PageRank is initialized with identical scores for each web page. What would be a better
 method to initialize pageRank so that less iterations are necessary?}
 
-PageRank is an algorithm that calculate the score of a page in terms of the score (in pageRank) of pages that link to that page. Thus, several iteration have to be iterated in order to compute the pageRank of each document and that task may be expensive at that rate knowing that in practice the amount of pageRank to compute is extremly high. Therefore reductions could be done in order to increase the computing time and to improve the ranking quality.
+PageRank is an algorithm that calculates the score of a page in terms of the scores (in pageRank) of pages that link to that page. Thus, several iterations have to be done in order to compute the pageRank for each document and that task may be expensive, knowing that in practice the amount of pages is extremly high. Therefore some optimizations could be done in order to decrease the computation time and to improve the ranking quality.
 
-First reduction could be the removement of navigational links between pages. Most of pages nowaday include a navigational links such as menu that help the web surfer to navigate into the website. Those links could have an influence in the pageRank calculation and therefore increase strongly the pageRank variables into each others what deteriorates the efficency besides the fact that those links could manipulate the rank and decrease the ranking quality.
+A possibly large optimization could be to initialize the algorithm with estimates for the pageRank for each page instead of identical values. The estimation could be based on simple factors as the document length or historical results, or even just a random normal distribution. This will most likely lead to much less iterations needed to get a steady, final result.
 
-An other reduction could be the removement of nepostic links. Several people tend to share links of their pages in publishments  out their pages  (Forum, comments...). Those comments could be represented as superfluous not only for the pageRanking computation time but also harm the ranking. Their reduction would be a big boost for the PR computation eventhough it is hard (and expensive) to detect those links.
+Another optimization could be the removal of navigational links between pages. Most pages nowaday include navigational links such as a menu that help the web surfer to navigate into the website. Those links increase the runtime of the pageRank calculation by introducing additional links between pages, besides the fact that those links could manipulate the rank as they are no recommendations and decrease the ranking quality.
 
-We could also reduce the kern of pages (documents) by considering that $pageRank(u)= pageRank(v)$, if $u$ and $v$ have the same in-comming edges and therefore they are similar. This reduction could save time in the pageRank computing by eliminating "duplicate" pageRank functions.
+An other reduction could be the removal of nepostic links. Several people tend to share links to their own pages in other publications (forums, comments...). Those nepostic links could be regarded as superfluous not only for the pageRanking computation time but also harm the ranking. Their removal would be a big boost for the pageRank computation, even though it is hard (and expensive) to detect those links.
 
-\section{(Programming) Document Embeddings and Optimization}
+We could also reduce the kern of pages (documents) by considering that $pageRank(u)= pageRank(v)$, if $u$ and $v$ have the same in-comming edges and therefore they are similar. This reduction could save time in the pageRank computation by eliminating "duplicate" pageRank functions.
 
-\subsection{For at least one phrase query, one boolean query, and one keyword query, report the total processing runtime. In addition to that, report the name of the operation that you identified as the bottleneck (longest runtime).}
+\section{(Programming) ReplyTo}
 
-\begin{table}[h]
-	\centering
-	\caption{Query Performance}
-	\begin{tabular}{l|r|l|r}
-		Query                & runtime (ms) & bottleneck         & runtime (ms)  \\ \hline
-		'european union'     &        84.96 & int\_from\_base64  & 68.0  \\
-		party AND chancellor &       162.31 & int\_from\_base64  & 90.0  \\
-		negotiate            &        17.05 & int\_from\_base64  &  9.0  \\
-	\end{tabular}
-\end{table}
+\subsection{Choose comment ids that lead to at least two search hits for the following queries. Print not only the search hits but also the comment that is specified in the query. The returned comments should be replies to the comment with the specified id.}
 
-The bottleneck in our implementation is the method \texttt{int\_from\_base64(x)}. It is used to convert the IDs and position integer values, that were saved as base64, back to real integers. A more efficient binary encoding could solve this.
+\subsubsection{”ReplyTo:300748”}
 
-\subsection{Use gensim to learn a vector representation for each comment. For one comment of your choice, find the most similar comment (not the exact same!) and print both.}
+\begin{lstlisting}
+Searching for replies to the following comment:
+The EU was a CIA initiative, the purpose of which is to make it easy for Washington to exercise political control over Europe. It is much easier for Washington to control the EU than 28 separate countries.  Moreover, if the EU unravels, so likely would NATO, which is the necessary cover for Washingtons aggression.
+Found 3 results in 0.23ms.
+-> bs. The US want to divide europe in order to keep the status of the dollar. The only menace to $ in all these years has been the euro, and it's surprising so many people don't get it. That UK don't belong in europe is a fact, but the EU must not divide now.
+-> its not always the CIA as much its not always Putins fault. There is nothing wrong with the idea of a United States Of Europe . The politicians running the show in Brussels need to be replaced. Nobody would want a government like these blood suckers.
+-> No matter what the new's, you'd still blame the nosey jews or the CIA for any outcome.\n\nOf course the rest of the world is so irrelevant and naive that only 2 groups of people in this world control everything.
+Materialized 3 results in 0.10ms.
+\end{lstlisting}
 
-Chosen comment:\\
+\subsubsection{”ReplyTo:26252”}
 
-\texttt{Pretty much all western production is in China. Russia doesn't produce anything except raw oil \& gas. Well, it does, but it doesn't have any impact on the global market. Russia is still accepting US \$ for oil and gas while China just loves to kiss US bottom. If they really want to shake US hegemony, than they should stop acting like US vassals. The end of petrodollar will not cause economic collapse of the USA, unless someone makes an larger impact on their economy.}\\
+\begin{lstlisting}
+Searching for replies to the following comment:
+"and civilians using suicide bombings and rocket strikes". I went to Palestine before the recent conflict and all the out going flights were cancelled. I stayed there during the war. There was no hamas suicide bombers. Nor was there hamas human shields. It's what we feared my fellow RTers, RT has turned zionist just like every other media. I'm disappointed.
+Found 2 results in 0.43ms.
+-> Tyrana, I, too have been there before and during periods of war.  Let me tell you, there were bombs and casualties everywhere.  And it was NOT just zionists.
+-> And as for your disappointment in RT, try viewing news from more than one source in order to make informed and less biased opinions.
+Materialized 2 results in 0.08ms.
+\end{lstlisting}
 
-Most similiar comment found by gensim doc2vec:\\
+\subsubsection{”ReplyTo:157515”}
 
-\texttt{And the fact that it's everywhere and won't make the pranksters as much profit.}
+\begin{lstlisting}
+Searching for replies to the following comment:
+Probably the largest number of protesters protesting Modi in London were Nepalis. You can see Nepali flags here an there in RT footage too. They were protesting against India installed Blockade against Nepal, but not officially accepted by Modi. There is ongoing humanitarian crisis in Nepal, as it is trying to cope with recent earthquake.\nNot a single word about this on RT...question more. Becoming more like CNN?
+Found 2 results in 0.37ms.
+-> Nepal is currently being punished by Modi for making Nepal a secular country while he is trying his best to make India a Hindu only country.
+-> Only muslims have right to spread their terror cult? otherwise jehadi cowards  will shout fake complains, bigger fools will just raise with guns. there can be no peace without decimating them. Nepalis are wise enough to decide their future.
+Materialized 2 results in 0.06ms.
+\end{lstlisting}
+
 
 
 \end{document}
