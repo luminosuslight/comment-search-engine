@@ -8,6 +8,9 @@ from base64 import b64encode, b64decode
 import cProfile
 import pstats
 import sys
+import array
+import memory_profiler
+import numpy as np
 from bisect import bisect_left
 from math import log
 from multiprocessing import Pool
@@ -292,15 +295,16 @@ class SearchEngine(object):
         return compressed
 
     def _uncompress_seek_list(self, compressed):
-        seek_list = []
         last_word = ""
+        i = 0
         for word in compressed:
             prefix_length = int(word[0])
             real_word = last_word[:prefix_length] + word[1:]
-            seek_list.append(real_word)
+            compressed[i] = real_word
+            i += 1
             last_word = real_word
-        print("Unique tokens in index:", len(seek_list), '\n')
-        return seek_list
+        print("Unique tokens in index:", len(compressed), '\n')
+        return compressed
 
     def _compress_seek_positions(self, seek_positions):
         compressed = []
@@ -311,7 +315,7 @@ class SearchEngine(object):
         return compressed
 
     def _uncompress_seek_positions(self, compressed):
-        seek_positions = []
+        seek_positions = array.array('I')  # unsigned int
         last_pos = 0
         for delta in compressed:
             pos = last_pos + delta
@@ -329,17 +333,20 @@ class SearchEngine(object):
                 seek_file.write(int_to_base64(positions[i]) + "\n")
 
     def _read_seek_file(self):
-        tokens = []
-        positions = []
+        tokens = np.ndarray([124435], dtype='U20')
+        positions = array.array('I')  # unsigned int
+        i = 0
         with open(self._seek_filename, 'r') as seek_file:
             while True:
                 token = seek_file.readline()
                 if not token:
                     break
-                tokens.append(token[:-1])
+                tokens[i] = token[:-1]
+                i += 1
                 positions.append(int_from_base64(seek_file.readline()[:-1]))
         return tokens, positions
 
+    @memory_profiler.profile
     def load_index(self):
         compressed_seek_list, compressed_seek_positions = self._read_seek_file()
         self._seek_list = self._uncompress_seek_list(compressed_seek_list)
@@ -473,6 +480,7 @@ class SearchEngine(object):
         return results
 
     def _get_postings(self, word):
+        word = word[:20]
         is_prefix = word.endswith("*")
         word = word.replace("*", "")
 
