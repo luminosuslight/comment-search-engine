@@ -77,6 +77,23 @@ def process_comment(c):
     return comment_id, comment, get_tokens(comment[3])
 
 
+def delta_compress_numbers(numbers):
+    last_pos = 0
+    for i in range(len(numbers)):
+        pos = numbers[i]
+        numbers[i] = pos - last_pos
+        last_pos = pos
+
+
+def delta_uncompress_numbers(numbers):
+    last_pos = 0
+    for i in range(len(numbers)):
+        delta = numbers[i]
+        pos = last_pos + delta
+        numbers[i] = pos
+        last_pos = pos
+
+
 class SearchEngine(object):
 
     def __init__(self, data_filename):
@@ -177,13 +194,14 @@ class SearchEngine(object):
         self._comment_count = comment_count
         self._avg_comment_length = avg_comment_length
 
+        delta_compress_numbers(self._comment_lengths_keys)
         with open(self._comment_lengths_filename, 'w') as lengths_file:
             for i in range(len(self._comment_lengths_keys)):
                 lengths_file.write("%d\n" % self._comment_lengths_keys[i])
                 lengths_file.write("%d\n" % self._comment_lengths_values[i])
             del self._comment_lengths_keys  # free memory
             del self._comment_lengths_values
-            self._comment_lengths_keys = array.array('l')  # signed long
+            self._comment_lengths_keys = array.array('i')  # signed int
             self._comment_lengths_values = array.array('i')  # signed int
 
         print("writing replies...")
@@ -241,7 +259,7 @@ class SearchEngine(object):
 
         postings_file = open(self._postings_filename, 'w', newline='')
         seek_list = []
-        seek_positions = array.array('l')
+        seek_positions = array.array('i')
         json_loads = json.loads
 
         # This is a K-Way merging algorithm:
@@ -270,7 +288,7 @@ class SearchEngine(object):
 
         # write seek list to disk:
         seek_list = self._compress_seek_list(seek_list)
-        seek_positions = self._compress_seek_positions(seek_positions)
+        delta_compress_numbers(seek_positions)
         self._write_seek_file(seek_list, seek_positions)
 
         # close files:
@@ -323,23 +341,6 @@ class SearchEngine(object):
             last_word = real_word
         return compressed
 
-    def _compress_seek_positions(self, seek_positions):
-        compressed = []
-        last_pos = 0
-        for pos in seek_positions:
-            compressed.append(pos - last_pos)
-            last_pos = pos
-        return compressed
-
-    def _uncompress_seek_positions(self, compressed):
-        seek_positions = array.array('I')  # unsigned int
-        last_pos = 0
-        for delta in compressed:
-            pos = last_pos + delta
-            seek_positions.append(pos)
-            last_pos = pos
-        return seek_positions
-
     def _write_seek_file(self, tokens, positions):
         if not len(tokens) == len(positions):
             print("Seek tokens and positions have different size. Aborting.")
@@ -360,7 +361,7 @@ class SearchEngine(object):
         return tokens, positions
 
     def _load_comment_lengths(self):
-        comment_lengths_keys = array.array('l', [0]) * self._comment_count  # signed long
+        comment_lengths_keys = array.array('i', [0]) * self._comment_count  # signed int
         comment_lengths_values = array.array('i', [0]) * self._comment_count
         with open(self._comment_lengths_filename, 'r') as lengths_file:
             readline_fn = lengths_file.readline
@@ -387,7 +388,7 @@ class SearchEngine(object):
         begin = time.time()
 
         self._seek_list = self._uncompress_seek_list(compressed_seek_list)
-        self._seek_positions = self._uncompress_seek_positions(compressed_seek_positions)
+        delta_uncompress_numbers(compressed_seek_positions)
 
         duration = time.time() - begin
         print("Uncompressed seek list in %.2fms." % (duration * 1000))
