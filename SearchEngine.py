@@ -118,7 +118,7 @@ class SearchEngine(object):
         self._seek_positions = None
         self._total_comment_length = 0
         self._comment_lengths_keys = array.array('i')
-        self._comment_lengths_values = array.array('i')
+        self._comment_lengths_values = array.array('H')  # unsigned short
         self._replies = {}
 
         self._reply_keys = array.array('i')
@@ -211,7 +211,7 @@ class SearchEngine(object):
             del self._comment_lengths_keys  # free memory
             del self._comment_lengths_values
             self._comment_lengths_keys = array.array('i')  # signed int
-            self._comment_lengths_values = array.array('i')  # signed int
+            self._comment_lengths_values = array.array('H')  # unsigned short
 
         print("writing replies...")
         self._write_replies_to_disk()
@@ -363,7 +363,7 @@ class SearchEngine(object):
 
     def _load_comment_lengths(self):
         comment_lengths_keys = array.array('i', [0]) * self._comment_count
-        comment_lengths_values = array.array('i', [0]) * self._comment_count
+        comment_lengths_values = array.array('H', [0]) * self._comment_count  # unsigned short
         with open(self._comment_lengths_filename, 'r') as lengths_file:
             readline_fn = lengths_file.readline
             for i in range(self._comment_count):
