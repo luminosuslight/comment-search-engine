@@ -186,10 +186,13 @@ class SearchEngine(object):
                     #    break
 
             except KeyboardInterrupt:
+                print("Stopping indexing processes...")
+                process_pool.terminate()
+                process_pool.join()
                 print("Indexing interrupted, continuing with merging...")
 
             if comment_chunk:
-                comment_chunk = process_pool.map(process_comment, comment_chunk)
+                comment_chunk = map(process_comment, comment_chunk)
                 for comment_id, comment, tokens in comment_chunk:
                     self._index_comment(comment_id, comment, tokens)
                 del comment_chunk
