@@ -257,7 +257,8 @@ class SearchEngine(object):
             readers[reader] = next(reader)
 
         postings_file = open(self._postings_filename, 'w', newline='')
-        seek_list = []
+        data_type = 'U%d' % INDEX_STRING_LENGTH
+        seek_list = np.ndarray([0], dtype=data_type)
         seek_positions = array.array('i')
         json_loads = json.loads
 
@@ -280,7 +281,8 @@ class SearchEngine(object):
                     readers[reader] = next(reader, ["", None])
 
             # store index of posting in postings file:
-            seek_list.append(word)
+            seek_list.resize((seek_list.shape[0] + 1,))
+            seek_list[-1] = word
             seek_positions.append(postings_file.tell())
             # write posting list to postings file:
             postings_file.write(self._postings_to_string(complete_posting) + '\n')
