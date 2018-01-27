@@ -117,12 +117,12 @@ class SearchEngine(object):
         self._seek_list = None
         self._seek_positions = None
         self._total_comment_length = 0
-        self._comment_lengths_keys = array.array('i')
+        self._comment_lengths_keys = array.array('L')
         self._comment_lengths_values = array.array('H')  # unsigned short
         self._replies = {}
 
-        self._reply_keys = array.array('i')
-        self._reply_positions = array.array('i')
+        self._reply_keys = array.array('L')
+        self._reply_positions = array.array('L')
         self._reply_to_file = None
         self._postings_file = None
         self._data_file = None
@@ -190,6 +190,9 @@ class SearchEngine(object):
                 process_pool.terminate()
                 process_pool.join()
                 print("Indexing interrupted, continuing with merging...")
+            except Exception as e:
+                print(e)
+                print("Something happened, trying to continue...")
 
             if comment_chunk:
                 comment_chunk = map(process_comment, comment_chunk)
@@ -214,7 +217,7 @@ class SearchEngine(object):
                 lengths_file.write("%d\n" % self._comment_lengths_values[i])
             del self._comment_lengths_keys  # free memory
             del self._comment_lengths_values
-            self._comment_lengths_keys = array.array('i')  # signed int
+            self._comment_lengths_keys = array.array('L')
             self._comment_lengths_values = array.array('H')  # unsigned short
 
         print("writing replies...")
@@ -232,7 +235,10 @@ class SearchEngine(object):
         reply_to_field = 5  # as specified in the mail
         # reply_to_field = 4  # as in the guardian data set
         if comment[reply_to_field]:
-            self._replies.setdefault(int(comment[reply_to_field]), array.array('i')).append(comment_id)
+            try:
+                self._replies.setdefault(int(comment[reply_to_field]), array.array('L')).append(comment_id)
+            except:
+                pass
 
     def _write_index_part_to_disk(self):
         if not self._postings: return
@@ -264,7 +270,7 @@ class SearchEngine(object):
         postings_file = open(self._postings_filename, 'w', newline='')
         data_type = 'U%d' % INDEX_STRING_LENGTH
         seek_list = np.ndarray([0], dtype=data_type)
-        seek_positions = array.array('i')
+        seek_positions = array.array('L')
         json_loads = json.loads
 
         # This is a K-Way merging algorithm:
@@ -360,7 +366,7 @@ class SearchEngine(object):
     def _read_seek_file(self, dict_size):
         data_type = 'U%d' % INDEX_STRING_LENGTH
         tokens = np.ndarray([dict_size], dtype=data_type)
-        positions = array.array('l', [0]) * dict_size
+        positions = array.array('L', [0]) * dict_size
         with open(self._seek_filename, 'r') as seek_file:
             for i in range(dict_size):
                 token = seek_file.readline()
@@ -369,7 +375,7 @@ class SearchEngine(object):
         return tokens, positions
 
     def _load_comment_lengths(self):
-        comment_lengths_keys = array.array('i', [0]) * self._comment_count
+        comment_lengths_keys = array.array('L', [0]) * self._comment_count
         comment_lengths_values = array.array('H', [0]) * self._comment_count  # unsigned short
         with open(self._comment_lengths_filename, 'r') as lengths_file:
             readline_fn = lengths_file.readline
@@ -381,8 +387,8 @@ class SearchEngine(object):
         self._comment_lengths_values = comment_lengths_values
 
     def _write_replies_to_disk(self):
-        reply_keys = array.array('i', [0]) * len(self._replies)
-        reply_positions = array.array('i', [0]) * len(self._replies)
+        reply_keys = array.array('L', [0]) * len(self._replies)
+        reply_positions = array.array('L', [0]) * len(self._replies)
         i = 0
         with open(self._reply_to_filename, 'w') as reply_to_file:
             for cid, replies in sorted(self._replies.items()):
@@ -404,8 +410,8 @@ class SearchEngine(object):
                 reply_seek_file.write("%d\n" % reply_positions[i])
 
     def _load_replies(self, reply_count):
-        reply_keys = array.array('i', [0]) * reply_count
-        reply_positions = array.array('i', [0]) * reply_count
+        reply_keys = array.array('L', [0]) * reply_count
+        reply_positions = array.array('L', [0]) * reply_count
         with open(self._reply_seek_filename, 'r') as reply_seek_file:
             for i in range(reply_count):
                 reply_keys[i] = int(reply_seek_file.readline()[:-1])
