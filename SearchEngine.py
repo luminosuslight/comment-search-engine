@@ -156,6 +156,7 @@ class SearchEngine(object):
     def _index_data(self):
         self._total_comment_length = 0
         with open(self._data_filename, 'r', newline='') as csvfile:
+            csvfile.readline()  # skip header
             # initial position:
             pos = csvfile.tell()
             comment_count = 0
@@ -225,7 +226,8 @@ class SearchEngine(object):
         for pos, word in tokens:
             self._postings.setdefault(word[:INDEX_STRING_LENGTH], []).append((comment_id, pos))
 
-        reply_to_field = 5
+        reply_to_field = 5  # as specified in the mail
+        # reply_to_field = 4  # as in the guardian data set
         if comment[reply_to_field]:
             self._replies.setdefault(int(comment[reply_to_field]), array.array('i')).append(comment_id)
 
