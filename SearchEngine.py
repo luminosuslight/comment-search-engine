@@ -23,6 +23,9 @@ from gensim.parsing.porter import PorterStemmer
 csv.field_size_limit(2147483647)
 
 
+INDEX_STRING_LENGTH = 8
+
+
 def print_profile(func):
     def inner(*args, **kwargs):
         pr = cProfile.Profile()
@@ -193,7 +196,7 @@ class SearchEngine(object):
                 self._write_index_part_to_disk()
 
         avg_comment_length = self._total_comment_length / comment_count
-        print("Comment count:", comment_count, len(self._comment_lengths_keys))
+        print("Comment count:", comment_count)
         print("Average comment length:", avg_comment_length)
         print("Total token count:", self._total_comment_length)
 
@@ -220,7 +223,7 @@ class SearchEngine(object):
 
         # append these occurrences of the tokens to the posting lists:
         for pos, word in tokens:
-            self._postings.setdefault(word, []).append((comment_id, pos))
+            self._postings.setdefault(word[:INDEX_STRING_LENGTH], []).append((comment_id, pos))
 
         reply_to_field = 5
         if comment[reply_to_field]:
@@ -348,7 +351,8 @@ class SearchEngine(object):
                 seek_file.write(int_to_base64(positions[i]) + "\n")
 
     def _read_seek_file(self, dict_size):
-        tokens = np.ndarray([dict_size], dtype='U20')
+        data_type = 'U%d' % INDEX_STRING_LENGTH
+        tokens = np.ndarray([dict_size], dtype=data_type)
         positions = array.array('l', [0]) * dict_size
         with open(self._seek_filename, 'r') as seek_file:
             for i in range(dict_size):
@@ -358,7 +362,7 @@ class SearchEngine(object):
         return tokens, positions
 
     def _load_comment_lengths(self):
-        comment_lengths_keys = array.array('i', [0]) * self._comment_count  # signed int
+        comment_lengths_keys = array.array('i', [0]) * self._comment_count
         comment_lengths_values = array.array('i', [0]) * self._comment_count
         with open(self._comment_lengths_filename, 'r') as lengths_file:
             readline_fn = lengths_file.readline
@@ -510,7 +514,6 @@ class SearchEngine(object):
             return self._avg_comment_length
         return self._comment_lengths_values[i]
 
-    @print_profile
     def _search_BM25(self, query, top_k):
         print("Searching using BM25: ", query)
         begin = time.time()
@@ -566,9 +569,12 @@ class SearchEngine(object):
         return results
 
     def _get_postings(self, word):
-        word = word[:20]
+        # (it is ok to cut off * suffix if word is longer than INDEX_STRING_LENGTH,
+        # because all those words end up in the same posting list anyway)
+        word = word[:INDEX_STRING_LENGTH]
         is_prefix = word.endswith("*")
-        word = word.replace("*", "")
+        if is_prefix:
+            word = word[:-1]
 
         i = bisect_left(self._seek_list, word)
         postings = []
@@ -719,8 +725,8 @@ class SearchEngine(object):
         #self.print_results("party AND chancellor", 5)
         #self.print_results("publi* NOT moderation", 1)
         #self.print_results("christmas market", 5)
-        #self.print_results("'european union'", 5)
-        #self.print_results("negotiate", 5)
+        self.print_results("'european union'", 5)
+        self.print_results("negotiate", 5)
         #self.search("ReplyTo:300744", 5)
 
     def print_results(self, query, top_k):
