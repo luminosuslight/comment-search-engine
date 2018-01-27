@@ -57,9 +57,13 @@ def int_from_base64(s):
     return x
 
 
+# pre-calculated values for better performance:
+pos_as_base64 = [int_to_base64(i) for i in range(400)]
+base64_to_pos = dict((int_to_base64(i), i) for i in range(128))
+
+
 stopwords = set(stopwords.words("english"))
 stemmer_fn = PorterStemmer().stem
-pos_as_base64 = [int_to_base64(i) for i in range(400)]
 
 
 def get_tokens(text):
@@ -110,16 +114,18 @@ class SearchEngine(object):
         self._seek_list = None
         self._seek_positions = None
         self._total_comment_length = 0
-        self._comment_lengths_keys = array.array('l')  # signed long
-        self._comment_lengths_values = array.array('i')  # signed int
+        self._comment_lengths_keys = array.array('i')
+        self._comment_lengths_values = array.array('i')
         self._replies = {}
-        self._reply_seek = {}  # small enough to be in memory, ~113 MB for 55M comments
 
+        self._reply_keys = array.array('i')
+        self._reply_positions = array.array('i')
+        self._reply_to_file = None
         self._postings_file = None
         self._data_file = None
-        self._reply_to_file = None
         self._comment_count = 0
         self._avg_comment_length = 0
+        self._reply_count = 0
 
         if os.path.exists(self._index_part_dir):
             shutil.rmtree(self._index_part_dir)
@@ -205,17 +211,7 @@ class SearchEngine(object):
             self._comment_lengths_values = array.array('i')  # signed int
 
         print("writing replies...")
-        reply_seek = {}
-        with open(self._reply_to_filename, 'w') as reply_to_file:
-            print("replies size:", self._replies.__sizeof__())
-            for cid, replies in sorted(self._replies.items()):
-                reply_seek[cid] = reply_to_file.tell()
-                compressed_replies = (int_to_base64(r) for r in replies)
-                reply_to_file.write(','.join(compressed_replies) + '\n')
-            print("reply seek size:", len(reply_seek), reply_seek.__sizeof__())
-
-        with open(self._reply_seek_filename, 'wb') as reply_seek_file:
-            reply_seek_file.write(pickle.dumps(reply_seek))
+        self._write_replies_to_disk()
 
     def _index_comment(self, comment_id, comment, tokens):
         self._total_comment_length += len(tokens)
@@ -228,7 +224,7 @@ class SearchEngine(object):
 
         reply_to_field = 5
         if comment[reply_to_field]:
-            self._replies.setdefault(int(comment[reply_to_field]), []).append(comment_id)
+            self._replies.setdefault(int(comment[reply_to_field]), array.array('i')).append(comment_id)
 
     def _write_index_part_to_disk(self):
         if not self._postings: return
@@ -299,7 +295,8 @@ class SearchEngine(object):
         with open(self._stats_filename, 'wb') as stats_file:
             stats_file.write(pickle.dumps({"doc_count": self._comment_count,
                                            "avg_doc_length": self._avg_comment_length,
-                                           "dict_size": len(seek_list)}))
+                                           "dict_size": len(seek_list),
+                                           "reply_count": self._reply_count}))
 
     def _postings_to_string(self, postings):
         # this function is a performance bottleneck -> use append instead of +
@@ -313,7 +310,7 @@ class SearchEngine(object):
         for post in s.rstrip(";").split(";"):
             cid, pos = post.split(":")
             cid = int_from_base64(cid)
-            pos = int_from_base64(pos)
+            pos = base64_to_pos.get(pos, None) or int_from_base64(pos)
             postings.append((cid, pos))
         return postings
 
@@ -368,8 +365,44 @@ class SearchEngine(object):
             for i in range(self._comment_count):
                 comment_lengths_keys[i] = int(readline_fn()[:-1])
                 comment_lengths_values[i] = int(readline_fn()[:-1])
+        delta_uncompress_numbers(comment_lengths_keys)
         self._comment_lengths_keys = comment_lengths_keys
         self._comment_lengths_values = comment_lengths_values
+
+    def _write_replies_to_disk(self):
+        reply_keys = array.array('i', [0]) * len(self._replies)
+        reply_positions = array.array('i', [0]) * len(self._replies)
+        i = 0
+        with open(self._reply_to_filename, 'w') as reply_to_file:
+            for cid, replies in sorted(self._replies.items()):
+                reply_keys[i] = cid
+                reply_positions[i] = reply_to_file.tell()
+                compressed_replies = (int_to_base64(r) for r in replies)
+                reply_to_file.write(','.join(compressed_replies) + '\n')
+                i += 1
+
+        self._reply_count = len(self._replies)
+        del self._replies
+        self._replies = None
+
+        delta_compress_numbers(reply_keys)
+        delta_compress_numbers(reply_positions)
+        with open(self._reply_seek_filename, 'w') as reply_seek_file:
+            for i in range(len(reply_keys)):
+                reply_seek_file.write("%d\n" % reply_keys[i])
+                reply_seek_file.write("%d\n" % reply_positions[i])
+
+    def _load_replies(self, reply_count):
+        reply_keys = array.array('i', [0]) * reply_count
+        reply_positions = array.array('i', [0]) * reply_count
+        with open(self._reply_seek_filename, 'r') as reply_seek_file:
+            for i in range(reply_count):
+                reply_keys[i] = int(reply_seek_file.readline()[:-1])
+                reply_positions[i] = int(reply_seek_file.readline()[:-1])
+        delta_uncompress_numbers(reply_keys)
+        delta_uncompress_numbers(reply_positions)
+        self._reply_keys = reply_keys
+        self._reply_positions = reply_positions
 
     #@memory_profiler.profile
     def load_index(self):
@@ -380,6 +413,7 @@ class SearchEngine(object):
             self._comment_count = stats["doc_count"]
             self._avg_comment_length = stats["avg_doc_length"]
             dict_size = stats["dict_size"]
+            self._reply_count = stats["reply_count"]
 
         compressed_seek_list, compressed_seek_positions = self._read_seek_file(dict_size)
 
@@ -389,6 +423,7 @@ class SearchEngine(object):
 
         self._seek_list = self._uncompress_seek_list(compressed_seek_list)
         delta_uncompress_numbers(compressed_seek_positions)
+        self._seek_positions = compressed_seek_positions
 
         duration = time.time() - begin
         print("Uncompressed seek list in %.2fms." % (duration * 1000))
@@ -400,8 +435,7 @@ class SearchEngine(object):
         print("Loaded comment lengths in %.2fms." % (duration * 1000))
         begin = time.time()
 
-        with open(self._reply_seek_filename, 'rb') as reply_seek_file:
-            self._reply_seek = pickle.load(reply_seek_file)
+        self._load_replies(self._reply_count)
 
         self._postings_file = open(self._postings_filename, 'r', newline='')
         self._data_file = open(self._data_filename, 'r', newline='')
@@ -471,8 +505,12 @@ class SearchEngine(object):
 
     def get_doc_length(self, comment_id):
         i = bisect_left(self._comment_lengths_keys, comment_id)
+        if i == len(self._comment_lengths_keys):
+            print("Could not find length for comment", comment_id)
+            return self._avg_comment_length
         return self._comment_lengths_values[i]
 
+    @print_profile
     def _search_BM25(self, query, top_k):
         print("Searching using BM25: ", query)
         begin = time.time()
@@ -630,9 +668,10 @@ class SearchEngine(object):
         return None
 
     def _get_replies(self, cid):
-        pos = self._reply_seek.get(cid, None)
-        if pos is None:
+        i = bisect_left(self._reply_keys, cid)
+        if i == len(self._reply_keys) or self._reply_keys[i] != cid:
             return []
+        pos = self._reply_positions[i]
         self._reply_to_file.seek(pos)
         line = self._reply_to_file.readline()
         replies = [int_from_base64(r) for r in line.split(',')]
@@ -675,6 +714,15 @@ class SearchEngine(object):
         #self.search("ReplyTo:26252", 5)
         #self.search("ReplyTo:157515", 5)
 
+    def test(self):
+        self.print_results("jobs", 5)
+        #self.print_results("party AND chancellor", 5)
+        #self.print_results("publi* NOT moderation", 1)
+        #self.print_results("christmas market", 5)
+        #self.print_results("'european union'", 5)
+        #self.print_results("negotiate", 5)
+        #self.search("ReplyTo:300744", 5)
+
     def print_results(self, query, top_k):
         print("\n".join(["%.1f - %s" % (c[-1], c[3]) for c in self.search(query, top_k)]) + "\n")
 
@@ -684,3 +732,4 @@ if __name__ == '__main__':
     searchEngine.create_index()
     searchEngine.load_index()
     #searchEngine.print_assignment2_query_results()
+    searchEngine.test()
