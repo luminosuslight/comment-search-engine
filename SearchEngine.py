@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import csv
 import json
 import pickle
@@ -66,13 +68,9 @@ def int_to_base64(x):
     return b64encode(x.to_bytes((x.bit_length() + 7) // 8, 'big')).decode().rstrip('=')
 
 
-# def int_from_base64(s):
-#     b = b64decode(s + '==')
-#     x = int_from_bytes(b)
-#     return x
-
 def int_from_base64(s):
     return int.from_bytes(b64decode(s + '=='), 'big')
+
 
 # pre-calculated values for better performance:
 pos_as_base64 = [int_to_base64(i) for i in range(400)]
@@ -152,6 +150,13 @@ class SearchEngine(object):
             os.makedirs('index')
 
     def create_index(self):
+        print("Assuming the following (0-based) column numbers in the CSV file:")
+        if guardian: print("(matches the Guardian data set)")
+        print("COMMENT_ID_FIELD = ", COMMENT_ID_FIELD)
+        print("TEXT_FIELD = ", TEXT_FIELD)
+        print("REPLY_TO_FIELD = ", REPLY_TO_FIELD)
+        print()
+
         if os.path.exists(self._postings_filename):
             print("Already indexed. Delete index to regenerate it.\n")
             return
@@ -196,9 +201,6 @@ class SearchEngine(object):
 
                     if not comment_count % 100000:
                         self._write_index_part_to_disk()
-
-                    #if not comment_count % 200000:
-                    #    break
 
             except KeyboardInterrupt:
                 print("Stopping indexing processes...")
