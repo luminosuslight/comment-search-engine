@@ -66,11 +66,13 @@ def int_to_base64(x):
     return b64encode(x.to_bytes((x.bit_length() + 7) // 8, 'big')).decode().rstrip('=')
 
 
-def int_from_base64(s):
-    b = b64decode(s + '==')
-    x = int_from_bytes(b)
-    return x
+# def int_from_base64(s):
+#     b = b64decode(s + '==')
+#     x = int_from_bytes(b)
+#     return x
 
+def int_from_base64(s):
+    return int.from_bytes(b64decode(s + '=='), 'big')
 
 # pre-calculated values for better performance:
 pos_as_base64 = [int_to_base64(i) for i in range(400)]
@@ -341,8 +343,8 @@ class SearchEngine(object):
         postings = []
         for post in s.rstrip(";").split(";"):
             cid, pos = post.split(":")
-            cid = int_from_base64(cid)
-            pos = base64_to_pos.get(pos, None) or int_from_base64(pos)
+            cid = int.from_bytes(b64decode(cid + '=='), 'big')  # inline int_from_base64(cid)
+            pos = base64_to_pos.get(pos, None) or int.from_bytes(b64decode(pos + '=='), 'big')  # inline int_from_base64(pos)
             postings.append((cid, pos))
         return postings
 
@@ -558,7 +560,7 @@ class SearchEngine(object):
         print("Searching using BM25: ", query)
         begin = time.time()
 
-        is_phrase_query = query.startswith("'") and query.endswith("'")
+        is_phrase_query = query.startswith("'") and (query.endswith("'") or query.endswith("'*"))
         if is_phrase_query and query.endswith("*"):
             print("Not supported.")
             return []
