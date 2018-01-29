@@ -248,7 +248,7 @@ class SearchEngine(object):
         self._total_comment_length += len(tokens)
         self._comment_lengths_keys.append(comment_id)
         self._comment_lengths_values.append(len(tokens))
-        #self._comment_csv_ids.append(int(comment[COMMENT_ID_FIELD]))
+        # self._comment_csv_ids.append(int(comment[COMMENT_ID_FIELD]))
 
         # append these occurrences of the tokens to the posting lists:
         for pos, word in tokens:
@@ -335,7 +335,6 @@ class SearchEngine(object):
                                            "reply_count": self._reply_count}))
 
     def _postings_to_string(self, postings):
-        # this function is a performance bottleneck -> use append instead of +
         s = []
         for cid, pos in postings:
             s += (int_to_base64(cid), ":", (pos_as_base64[pos] if pos < len(pos_as_base64) else int_to_base64(pos)), ";")
@@ -445,7 +444,6 @@ class SearchEngine(object):
         self._reply_keys = reply_keys
         self._reply_positions = reply_positions
 
-    #@memory_profiler.profile
     def load_index(self):
         begin = time.time()
 
@@ -689,75 +687,6 @@ class SearchEngine(object):
         replies = [int_from_base64(r) for r in line.split(',')]
         return (self.get_comment(cid) for cid in replies[:top_k or len(replies)])
 
-    # def get_comment_by_csv_id(self, csv_id):
-    #     i = bisect_left(self._comment_csv_ids, csv_id)
-    #     if i == len(self._comment_csv_ids):
-    #         print("Could not find comment by CSV ID: ", csv_id)
-    #         return None
-    #     return self.get_comment(self._comment_lengths_keys[i])
-
-    # def get_comment_by_line_number(self, cid):
-    #     # Finds a comment in a csv file
-    #     # The id has to be the line number and the file has to be ordered
-    #     # Binary search would need up to log(file_size) seeks, while
-    #     # this approach needs only ~log(n)/4 seeks plus a sequential read
-    #     # of up to 50 lines which is much more disk friendly and therefore faster
-    #     if cid >= self._comment_count:
-    #         return None
-    #     self._data_file.seek(0, os.SEEK_END)
-    #     file_size = self._data_file.tell()
-    #     avg_comment_size = file_size / self._comment_count
-    #
-    #     estimated_position = cid * avg_comment_size
-    #     self._data_file.seek(estimated_position)
-    #     self._data_file.readline()  # discard partial line
-    #     line = self._data_file.readline()
-    #     comment = next(csv.reader([line]))
-    #     nr = int(comment[COMMENT_ID_FIELD])
-    #     diff = cid - nr
-    #     if diff == 0:
-    #         return comment
-    #
-    #     while diff < 0 or diff > 50:
-    #         estimated_position = max(0, min(estimated_position + (diff * avg_comment_size), file_size - 1))
-    #         self._data_file.seek(estimated_position)
-    #         self._data_file.readline()  # discard partial line
-    #         line = self._data_file.readline()
-    #         comment = next(csv.reader([line]))
-    #         nr = int(comment[COMMENT_ID_FIELD])
-    #         diff = cid - nr
-    #         if diff == 0:
-    #             return comment
-    #
-    #     for i in range(51):
-    #         line = self._data_file.readline()
-    #         comment = next(csv.reader([line]))
-    #         nr = int(comment[COMMENT_ID_FIELD])
-    #         diff = cid - nr
-    #         if diff == 0:
-    #             return comment
-    #
-    #     print("Could not find comment with id:", cid)
-    #     return None
-
-    # def print_replies(self, csv_id, top_k):
-    #     begin = time.time()
-    #     comment = self.get_comment_by_csv_id(csv_id)
-    #     if not comment:
-    #         print("Could not find comment:", csv_id)
-    #         return []
-    #     print("\nSearching for replies to the following comment:\n%s" % comment[3])
-    #     reply_ids = self.get_replies(csv_id)
-    #     duration = time.time() - begin
-    #     print("Found %d results in %.2fms." % (len(reply_ids), duration * 1000))
-    #     begin = time.time()
-    #     top_k = top_k or len(reply_ids)
-    #     for rid in reply_ids[:top_k]:
-    #         reply = self.get_comment(rid)
-    #         print(" -> " + reply[3])
-    #     duration = time.time() - begin
-    #     print("Materialized %d results in %.2fms." % (min(len(reply_ids), top_k), duration * 1000))
-
     def search_and_write_to_file(self, query, top_k, out_filename, print_ids_only):
         print("\nOut File: %s, TopN: %s, Query: %s" % (out_filename, top_k, query))
         result = self.search(query, top_k)
@@ -767,9 +696,6 @@ class SearchEngine(object):
                     out_file.write("%s\n" % comment[COMMENT_ID_FIELD])
                 else:
                     out_file.write("%s, %s\n" % (comment[COMMENT_ID_FIELD], comment[TEXT_FIELD]))
-
-    # def print_results(self, query, top_k):
-    #     print("\n".join(["%.1f - %s" % (c[-1], c[3]) for c in self.search(query, top_k)]) + "\n")
 
 
 if __name__ == '__main__':
