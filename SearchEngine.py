@@ -483,7 +483,7 @@ class SearchEngine(object):
         print("")
 
     def search(self, query, top_k):
-        query = query.replace('"', "'").replace('`', "'").replace('’', "'")
+        query = query.replace('"', "'").replace('`', "'").replace('’', "'").replace("”", "'")
         if query.startswith("ReplyTo:"):
             if any(word in query for word in (" AND ", " OR ", " NOT ")):
                 print("Not supported.")
