@@ -32,9 +32,9 @@ COMMENT_ID_FIELD = 0
 TEXT_FIELD = 3
 REPLY_TO_FIELD = 5
 
-guardian = True
+guardian = False
 if guardian:
-    # Guardians data set: 0 article_id, 1 author_id, 2 comment_id, 3 text, 4 parent_cid, 5 timestamp, 6 upvotes
+    # original Guardians data set: 0 article_id, 1 author_id, 2 comment_id, 3 text, 4 parent_cid, 5 timestamp, 6 upvotes
     COMMENT_ID_FIELD = 2
     TEXT_FIELD = 3
     REPLY_TO_FIELD = 4
@@ -150,13 +150,6 @@ class SearchEngine(object):
             os.makedirs('index')
 
     def create_index(self):
-        print("Assuming the following (0-based) column numbers in the CSV file:")
-        if guardian: print("(matches the Guardian data set)")
-        print("COMMENT_ID_FIELD = ", COMMENT_ID_FIELD)
-        print("TEXT_FIELD = ", TEXT_FIELD)
-        print("REPLY_TO_FIELD = ", REPLY_TO_FIELD)
-        print()
-
         if os.path.exists(self._postings_filename):
             print("Already indexed. Delete index to regenerate it.\n")
             return
