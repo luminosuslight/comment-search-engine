@@ -497,6 +497,9 @@ class SearchEngine(object):
         begin = time.time()
 
         is_phrase_query = query.startswith("'") and query.endswith("'")
+
+        is_phrase_query_joker= query.startswith("'") and query.endswith("*")
+
         tokens = get_tokens(query)
 
         # find all postings:
@@ -540,6 +543,15 @@ class SearchEngine(object):
             duration = time.time() - begin
             print("Phrase query matched %d results in %.2fms." % (len(results), duration * 1000))
 
+        elif is_phrase_query_joker:
+            simple_query = query.replace("*", "").lower()
+            simple_query = simple_query.replace("'", "").lower()
+            for comment in results.copy():
+                if simple_query not in comment[3].lower():
+                    results.remove(comment)
+            duration = time.time() - begin
+            print("Phrase query matched %d results in %.2fms." % (len(results), duration * 1000))
+
         return results
 
     def get_doc_length(self, comment_id):
@@ -553,10 +565,12 @@ class SearchEngine(object):
         print("Searching using BM25: ", query)
         begin = time.time()
 
-        is_phrase_query = query.startswith("'") and (query.endswith("'") or query.endswith("'*"))
-        if is_phrase_query and query.endswith("*"):
-            print("Not supported.")
-            return []
+        is_phrase_query = query.startswith("'") and query.endswith("'")
+        is_phrase_query_joker= query.startswith("'") and query.endswith("'*")
+
+        # if is_phrase_query and query.endswith("*"):
+        #     print("Not supported.")
+        #     return []
         tokens = get_tokens(query)
         query_results = {}
         avg_doc_length = self._avg_comment_length
@@ -588,15 +602,20 @@ class SearchEngine(object):
         # materialize results:
         results = []
         simple_query = query.replace("'", "").lower()
+        if is_phrase_query_joker:
+            simple_query = simple_query.replace("*", "").lower()
+
         materialize_count = 0
         for comment_id, score in sorted(query_results.items(), key=lambda x: x[1], reverse=True):
             comment = self.get_comment(comment_id)
             materialize_count += 1
             if is_phrase_query and simple_query not in comment[3].lower():
                 continue
+            if is_phrase_query_joker and simple_query not in comment[3].lower():
+                continue
             comment.append(score)
             results.append(comment)
-            if top_k and len(results) >= top_k:
+            if len(results) >= top_k:
                 break
 
         duration = time.time() - begin
@@ -706,7 +725,7 @@ if __name__ == '__main__':
         # the data source while executing the queries
         searchEngine.create_index()
     else:
-        with open(args.query, 'r') as file:
+        with open(args.query, 'r',encoding="utf-8") as file:
             queries = [q[:-1] for q in file.readlines()]
 
         searchEngine.load_index()
