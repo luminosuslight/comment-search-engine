@@ -90,6 +90,18 @@ def get_tokens(text):
     return stemmed_words
 
 
+def get_tokens_with_prefix_operator(text):
+    tokens = list(tokenize(text, lowercase=True))
+    for i in range(len(tokens)):
+        if tokens[i] + '*' in text:
+            tokens[i] = tokens[i] + '*'
+
+    # add position numbers, remove punctuation and stem words:
+    stemmed_words = [(pos, stemmer_fn(word)) for (pos, word) in enumerate(tokens) if
+                     word not in stopwords and word.isalpha() or word.endswith("*")]
+    return stemmed_words
+
+
 def process_comment(c):
     comment_id, comment = c
     # 'text' is 4th item in comment
@@ -485,7 +497,7 @@ class SearchEngine(object):
                 return []
             return self.get_replies(int(query[len("ReplyTo:"):].split()[0]), top_k, internal_ids_only)
         elif any(word in query for word in (" AND ", " OR ", " NOT ")):
-            if "'" in query or "*" in query:
+            if "'" in query:
                 print("Not supported.")
                 return []
             return self._search_binary(query, top_k, internal_ids_only)
@@ -497,7 +509,7 @@ class SearchEngine(object):
         begin = time.time()
 
         is_phrase_query = query.startswith("'") and query.endswith("'")
-        tokens = get_tokens(query)
+        tokens = get_tokens_with_prefix_operator(query)
 
         # find all postings:
         all_postings = []
@@ -560,7 +572,7 @@ class SearchEngine(object):
         if is_phrase_query and query.endswith("*"):
             print("Not supported.")
             return []
-        tokens = get_tokens(query)
+        tokens = get_tokens_with_prefix_operator(query)
         query_results = {}
         avg_doc_length = self._avg_comment_length
 
@@ -637,7 +649,7 @@ class SearchEngine(object):
                 pos = self._seek_positions[i]
                 self._postings_file.seek(pos)
                 line = self._postings_file.readline()
-                postings = postings + json.loads(line)
+                postings = postings + self._postings_from_string(line[:-1])
                 i = i+1
 
         else:  # exact match
