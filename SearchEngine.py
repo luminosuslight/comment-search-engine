@@ -477,22 +477,22 @@ class SearchEngine(object):
         print("Loaded reply index in %.2fms." % (duration * 1000))
         print("")
 
-    def search(self, query, top_k):
+    def search(self, query, top_k, internal_ids_only):
         query = query.replace('"', "'").replace('`', "'").replace('’', "'").replace("”", "'")
         if query.startswith("ReplyTo:"):
             if any(word in query for word in (" AND ", " OR ", " NOT ")):
                 print("Not supported.")
                 return []
-            return self.get_replies(int(query[len("ReplyTo:"):].split()[0]), top_k)
+            return self.get_replies(int(query[len("ReplyTo:"):].split()[0]), top_k, internal_ids_only)
         elif any(word in query for word in (" AND ", " OR ", " NOT ")):
             if "'" in query or "*" in query:
                 print("Not supported.")
                 return []
-            return self._search_binary(query, top_k)
+            return self._search_binary(query, top_k, internal_ids_only)
         else:
-            return self._search_BM25(query, top_k)
+            return self._search_BM25(query, top_k, internal_ids_only)
 
-    def _search_binary(self, query, top_k):
+    def _search_binary(self, query, top_k, internal_ids_only):
         print("Searching using binary model: ", query)
         begin = time.time()
 
@@ -518,6 +518,9 @@ class SearchEngine(object):
         duration = time.time() - begin
         print("Found %d results in %.2fms." % (len(relevant_doc_ids), duration * 1000))
         begin = time.time()
+
+        if internal_ids_only and not is_phrase_query:
+            return list(relevant_doc_ids)[:top_k or len(relevant_doc_ids)]
 
         # materialize results:
         results = []
@@ -549,7 +552,7 @@ class SearchEngine(object):
             return self._avg_comment_length
         return self._comment_lengths_values[i]
 
-    def _search_BM25(self, query, top_k):
+    def _search_BM25(self, query, top_k, internal_ids_only):
         print("Searching using BM25: ", query)
         begin = time.time()
 
@@ -585,10 +588,15 @@ class SearchEngine(object):
         print("Found %d results in %.2fms." % (len(query_results), duration * 1000))
         begin = time.time()
 
+        if internal_ids_only and not is_phrase_query:
+            return list(query_results.keys())[:top_k or len(query_results)]
+
         # materialize results:
         results = []
         simple_query = query.replace("'", "").lower()
         materialize_count = 0
+        if is_phrase_query and not top_k:
+            top_k = 100
         for comment_id, score in sorted(query_results.items(), key=lambda x: x[1], reverse=True):
             comment = self.get_comment(comment_id)
             materialize_count += 1
@@ -601,7 +609,7 @@ class SearchEngine(object):
 
         duration = time.time() - begin
         print("Materialized %d results to find %s results in %.2fms." %
-              (materialize_count, "top %d" % top_k if top_k else "all", duration * 1000))
+              (materialize_count, "top %d" % len(results) if materialize_count < len(query_results) else "all %d" % len(results), duration * 1000))
         if not results:
             print("No result found.")
 
@@ -670,22 +678,34 @@ class SearchEngine(object):
         comment = next(csv.reader([line]))
         return comment
 
-    def get_replies(self, csv_id, top_k):
+    def get_replies(self, csv_id, top_k, internal_ids_only):
+        begin = time.time()
         i = bisect_left(self._reply_keys, csv_id)
         if i == len(self._reply_keys) or self._reply_keys[i] != csv_id:
+            duration = time.time() - begin
+            print("Found %d replies in %.2fms." % (0, duration * 1000))
             return []
         pos = self._reply_positions[i]
         self._reply_to_file.seek(pos)
         line = self._reply_to_file.readline()
         replies = [int_from_base64(r) for r in line.split(',')]
-        return (self.get_comment(cid) for cid in replies[:top_k or len(replies)])
+        if internal_ids_only:
+            duration = time.time() - begin
+            print("Found %d replies in %.2fms." % (len(list(replies)), duration * 1000))
+            return replies[:top_k or len(replies)]
+        result = (self.get_comment(cid) for cid in replies[:top_k or len(replies)])
+        duration = time.time() - begin
+        print("Found %d replies in %.2fms." % (len(list(result)), duration * 1000))
+        return result
 
-    def search_and_write_to_file(self, query, top_k, out_filename, print_ids_only):
+    def search_and_write_to_file(self, query, top_k, out_filename, print_ids_only, printInternalIdsOnly):
         print("\nOut File: %s, TopN: %s, Query: %s" % (out_filename, top_k, query))
-        result = self.search(query, top_k)
+        result = self.search(query, top_k, printInternalIdsOnly)
         with open(out_filename, 'w') as out_file:
             for comment in result:
-                if print_ids_only:
+                if printInternalIdsOnly:
+                    out_file.write("%s\n" % comment)
+                elif print_ids_only:
                     out_file.write("%s\n" % comment[COMMENT_ID_FIELD])
                 else:
                     out_file.write("%s, %s\n" % (comment[COMMENT_ID_FIELD], comment[TEXT_FIELD]))
@@ -696,6 +716,8 @@ if __name__ == '__main__':
     parser.add_argument("query", help="a txt file with one boolean, keyword, phrase, ReplyTo, or Index query per line")
     parser.add_argument("--topN", help="the maximum number of search hits to be printed", type=int)
     parser.add_argument("--printIdsOnly", help="print only commentIds and not ids and their corresponding comments",
+                        action="store_true")
+    parser.add_argument("--printInternalIdsOnly", help="print only internal IDs (no materialization)",
                         action="store_true")
     args = parser.parse_args()
 
@@ -712,4 +734,4 @@ if __name__ == '__main__':
         searchEngine.load_index()
 
         for i, query in enumerate(queries):
-            searchEngine.search_and_write_to_file(query, args.topN, "query%d.txt" % (i+1,), args.printIdsOnly)
+            searchEngine.search_and_write_to_file(query, args.topN, "query%d.txt" % (i+1,), args.printIdsOnly, args.printInternalIdsOnly)
