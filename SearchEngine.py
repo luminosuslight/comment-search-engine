@@ -710,14 +710,14 @@ class SearchEngine(object):
         print("Found %d replies in %.2fms." % (len(list(result)), duration * 1000))
         return result
 
-    def search_and_write_to_file(self, query, top_k, out_filename, print_ids_only, printInternalIdsOnly):
+    def search_and_write_to_file(self, query, top_k, out_filename, original_ids_only, internal_ids_only):
         print("\nOut File: %s, TopN: %s, Query: %s" % (out_filename, top_k, query))
-        result = self.search(query, top_k, printInternalIdsOnly)
+        result = self.search(query, top_k, internal_ids_only)
         with open(out_filename, 'w') as out_file:
             for comment in result:
-                if printInternalIdsOnly:
+                if internal_ids_only:
                     out_file.write("%s\n" % comment)
-                elif print_ids_only:
+                elif original_ids_only:
                     out_file.write("%s\n" % comment[COMMENT_ID_FIELD])
                 else:
                     out_file.write("%s, %s\n" % (comment[COMMENT_ID_FIELD], comment[TEXT_FIELD]))
@@ -727,9 +727,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("query", help="a txt file with one boolean, keyword, phrase, ReplyTo, or Index query per line")
     parser.add_argument("--topN", help="the maximum number of search hits to be printed", type=int)
-    parser.add_argument("--printIdsOnly", help="print only commentIds and not ids and their corresponding comments",
+    parser.add_argument("--printIdsOnly", help="print only internal IDs (no materialization)",
                         action="store_true")
-    parser.add_argument("--printInternalIdsOnly", help="print only internal IDs (no materialization)",
+    parser.add_argument("--printOriginalIdsOnly", help="print only original commentIds and not ids and their corresponding comments",
                         action="store_true")
     args = parser.parse_args()
 
@@ -746,4 +746,4 @@ if __name__ == '__main__':
         searchEngine.load_index()
 
         for i, query in enumerate(queries):
-            searchEngine.search_and_write_to_file(query, args.topN, "query%d.txt" % (i+1,), args.printIdsOnly, args.printInternalIdsOnly)
+            searchEngine.search_and_write_to_file(query, args.topN, "query%d.txt" % (i+1,), args.printOriginalIdsOnly, args.printIdsOnly)
